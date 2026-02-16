@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 
-const dbPath = path.join(process.cwd(), 'emfrontier.db');
+// 공통 DB 경로 사용 (부모 디렉토리)
+const dbPath = path.join(process.cwd(), '..', 'shared-emfrontier.db');
 let db: Database.Database | null = null;
 
 export function getDatabase() {
