@@ -20,6 +20,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    // 5초마다 자동 새로고침 (실시간 반영)
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
@@ -122,6 +125,35 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  // 상태 직접 변경 (Notion 스타일)
+  const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
+    const statusList = ['접수대기', '접수완료', '진행중', '진행완료', '집행완료', '보완', '반려'];
+    const currentIndex = statusList.indexOf(currentStatus || '접수대기');
+    const nextStatus = statusList[(currentIndex + 1) % statusList.length];
+    
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/update-status', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId,
+          status: nextStatus,
+          notes: ''
+        })
+      });
+
+      if (res.ok) {
+        fetchData(); // 즉시 새로고침
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -222,6 +254,9 @@ export default function AdminDashboard() {
                     NICE점수
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    선택 정책자금
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -235,7 +270,7 @@ export default function AdminDashboard() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                       아직 신청한 회원이 없습니다.
                     </td>
                   </tr>
@@ -256,19 +291,36 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {client.nice_score}점
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {client.policy_funds && client.policy_funds.length > 0 ? (
+                          <div className="space-y-1">
+                            {client.policy_funds.map((fund: string, idx: number) => (
+                              <div key={idx} className="text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                                {fund}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">미선택</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          client.application_status === '접수대기' ? 'bg-gray-100 text-gray-800' :
-                          client.application_status === '접수완료' ? 'bg-blue-100 text-blue-800' :
-                          client.application_status === '진행중' ? 'bg-yellow-100 text-yellow-800' :
-                          client.application_status === '진행완료' ? 'bg-green-100 text-green-800' :
-                          client.application_status === '집행완료' ? 'bg-purple-100 text-purple-800' :
-                          client.application_status === '보완' ? 'bg-orange-100 text-orange-800' :
-                          client.application_status === '반려' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {client.application_status || '접수대기'}
-                        </span>
+                        <button
+                          onClick={() => handleQuickStatusChange(client.id, client.application_status)}
+                          className={`px-3 py-2 rounded text-xs font-semibold cursor-pointer hover:shadow-lg transition-all transform hover:scale-105 ${
+                            client.application_status === '접수대기' ? 'bg-gray-100 text-gray-800 hover:bg-gray-200' :
+                            client.application_status === '접수완료' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
+                            client.application_status === '진행중' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
+                            client.application_status === '진행완료' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                            client.application_status === '집행완료' ? 'bg-purple-100 text-purple-800 hover:bg-purple-200' :
+                            client.application_status === '보완' ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' :
+                            client.application_status === '반려' ? 'bg-red-100 text-red-800 hover:bg-red-200' :
+                            'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          }`}
+                          title="클릭하여 다음 단계로 이동"
+                        >
+                          {client.application_status || '접수대기'} →
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(client.created_at).toLocaleDateString('ko-KR')}

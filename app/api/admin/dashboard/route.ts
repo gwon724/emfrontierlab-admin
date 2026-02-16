@@ -23,11 +23,18 @@ export async function GET(request: NextRequest) {
       SELECT 
         c.*,
         a.status as application_status,
-        a.id as application_id
+        a.id as application_id,
+        a.policy_funds as policy_funds
       FROM clients c
       LEFT JOIN applications a ON c.id = a.client_id
       ORDER BY c.created_at DESC
     `).all();
+
+    // policy_funds JSON 파싱
+    const parsedClients = (clients as any[]).map((client: any) => ({
+      ...client,
+      policy_funds: client.policy_funds ? JSON.parse(client.policy_funds) : []
+    }));
 
     // 상태별 카운트
     const statusCounts = {
@@ -40,16 +47,16 @@ export async function GET(request: NextRequest) {
       반려: 0
     };
 
-    clients.forEach((client: any) => {
+    parsedClients.forEach((client: any) => {
       if (client.application_status && statusCounts.hasOwnProperty(client.application_status)) {
         statusCounts[client.application_status as keyof typeof statusCounts]++;
       }
     });
 
     return NextResponse.json({
-      clients,
+      clients: parsedClients,
       statusCounts,
-      totalClients: clients.length
+      totalClients: parsedClients.length
     });
 
   } catch (error: any) {
