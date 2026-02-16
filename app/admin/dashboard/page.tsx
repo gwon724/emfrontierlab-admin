@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showClientDetail, setShowClientDetail] = useState(false);
   const [qrPassword, setQrPassword] = useState('');
   const [scannedData, setScannedData] = useState<any>(null);
   const [statusUpdate, setStatusUpdate] = useState({
@@ -323,19 +324,30 @@ export default function AdminDashboard() {
                         {new Date(client.created_at).toLocaleDateString('ko-KR')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setStatusUpdate({
-                              status: client.application_status || '접수대기',
-                              notes: ''
-                            });
-                            setShowStatusModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900 font-medium"
-                        >
-                          상태변경
-                        </button>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setShowClientDetail(true);
+                            }}
+                            className="text-green-600 hover:text-green-900 font-medium"
+                          >
+                            상세보기
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setStatusUpdate({
+                                status: client.application_status || '접수대기',
+                                notes: ''
+                              });
+                              setShowStatusModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 font-medium"
+                          >
+                            상태변경
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -452,6 +464,140 @@ export default function AdminDashboard() {
                 확인
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 회원 상세 정보 모달 */}
+      {showClientDetail && selectedClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">
+              회원 상세 정보
+            </h3>
+
+            {/* 기본 정보 */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
+                📋 기본 정보
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">이름</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">이메일</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.email}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">나이</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.age}세</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">성별</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.gender}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">가입일</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {new Date(selectedClient.created_at).toLocaleString('ko-KR')}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">SOHO 등급</label>
+                  <p className="text-base font-semibold text-green-600">{selectedClient.soho_grade}등급</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 재무 정보 */}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
+                💰 재무 정보
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">연매출</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.annual_revenue?.toLocaleString()}원
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">부채</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.debt?.toLocaleString()}원
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">KCB 점수</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.kcb_score}점</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">NICE 점수</label>
+                  <p className="text-base font-semibold text-gray-900">{selectedClient.nice_score}점</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600">기술력 보유</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.has_technology ? '✅ 예' : '❌ 아니오'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 선택한 정책자금 */}
+            {selectedClient.policy_funds && selectedClient.policy_funds.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
+                  💼 선택한 정책자금
+                </h4>
+                <div className="space-y-2">
+                  {selectedClient.policy_funds.map((fund: string, idx: number) => (
+                    <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <span className="font-medium text-gray-800">{fund}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 진행 상태 */}
+            {selectedClient.application_status && (
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
+                  📊 진행 상태
+                </h4>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600">현재 상태</span>
+                    <span className={`px-3 py-1 rounded text-sm font-semibold ${
+                      selectedClient.application_status === '접수대기' ? 'bg-gray-100 text-gray-800' :
+                      selectedClient.application_status === '접수완료' ? 'bg-blue-100 text-blue-800' :
+                      selectedClient.application_status === '진행중' ? 'bg-yellow-100 text-yellow-800' :
+                      selectedClient.application_status === '진행완료' ? 'bg-green-100 text-green-800' :
+                      selectedClient.application_status === '집행완료' ? 'bg-purple-100 text-purple-800' :
+                      selectedClient.application_status === '보완' ? 'bg-orange-100 text-orange-800' :
+                      selectedClient.application_status === '반려' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedClient.application_status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => {
+                setShowClientDetail(false);
+                setSelectedClient(null);
+              }}
+              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
