@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -14,6 +15,9 @@ export default function AdminDashboard() {
   const [showClientDetail, setShowClientDetail] = useState(false);
   const [qrPassword, setQrPassword] = useState('');
   const [scannedData, setScannedData] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState('');
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const [statusUpdate, setStatusUpdate] = useState({
     status: '접수대기',
     notes: ''
@@ -83,12 +87,50 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleQRScan = async () => {
-    if (!scannedData) {
-      alert('QR 데이터를 입력해주세요.');
-      return;
-    }
+  const startQRScanner = async () => {
+    try {
+      setScannerError('');
+      setIsScanning(true);
+      
+      const html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCodeRef.current = html5QrCode;
 
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        async (decodedText) => {
+          // QR 코드 스캔 성공
+          console.log('QR Scanned:', decodedText);
+          await processQRData(decodedText);
+          stopQRScanner();
+        },
+        (errorMessage) => {
+          // 스캔 중 오류 (무시)
+        }
+      );
+    } catch (error: any) {
+      console.error('Scanner start error:', error);
+      setScannerError('카메라를 시작할 수 없습니다: ' + error.message);
+      setIsScanning(false);
+    }
+  };
+
+  const stopQRScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current = null;
+      } catch (error) {
+        console.error('Error stopping scanner:', error);
+      }
+    }
+    setIsScanning(false);
+  };
+
+  const processQRData = async (qrData: string) => {
     try {
       const res = await fetch('/api/qr/scan', {
         method: 'POST',
@@ -96,8 +138,8 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          qrData: scannedData,
-          password: '' // 비밀번호 불필요
+          qrData: qrData,
+          password: ''
         })
       });
 
@@ -112,10 +154,34 @@ export default function AdminDashboard() {
         alert(data.error || 'QR 스캔에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Error scanning QR:', error);
-      alert('QR 스캔 중 오류가 발생했습니다.');
+      console.error('Error processing QR:', error);
+      alert('QR 처리 중 오류가 발생했습니다.');
     }
   };
+
+  const handleQRScan = async () => {
+    if (!scannedData) {
+      alert('QR 데이터를 입력해주세요.');
+      return;
+    }
+    await processQRData(scannedData);
+  };
+
+  // QR 스캐너 모달이 열리면 자동으로 스캐너 시작
+  useEffect(() => {
+    if (showQRScanner && !isScanning) {
+      // 모달이 렌더링된 후 스캐너 시작
+      setTimeout(() => {
+        startQRScanner();
+      }, 100);
+    }
+    
+    return () => {
+      if (html5QrCodeRef.current) {
+        stopQRScanner();
+      }
+    };
+  }, [showQRScanner]);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
@@ -424,46 +490,61 @@ export default function AdminDashboard() {
       {/* QR 스캐너 모달 */}
       {showQRScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+          <div className="bg-white rounded-lg p-8 max-w-lg w-full">
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              QR 코드 스캔
+              📷 QR 코드 스캔
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              클라이언트의 QR 코드를 스캔하거나 데이터를 입력하세요
+              카메라로 클라이언트의 QR 코드를 스캔하세요
             </p>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  QR 데이터
+            {/* QR 스캐너 영역 */}
+            <div className="mb-4">
+              <div id="qr-reader" className="w-full rounded-lg overflow-hidden border-2 border-blue-500"></div>
+              {scannerError && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  {scannerError}
+                </div>
+              )}
+            </div>
+
+            {/* 수동 입력 옵션 */}
+            <details className="mb-4">
+              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                수동으로 QR 데이터 입력
+              </summary>
+              <div className="mt-3 space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  QR 데이터 (JSON)
                 </label>
                 <textarea
                   value={scannedData || ''}
                   onChange={(e) => setScannedData(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                   rows={3}
                   placeholder='{"clientId":1,"email":"test@example.com"}'
                 />
+                <button
+                  onClick={handleQRScan}
+                  className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                >
+                  수동 입력 확인
+                </button>
               </div>
-            </div>
+            </details>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowQRScanner(false);
-                  setScannedData(null);
-                }}
-                className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleQRScan}
-                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-              >
-                확인
-              </button>
-            </div>
+            {/* 닫기 버튼 */}
+            <button
+              onClick={async () => {
+                await stopQRScanner();
+                setShowQRScanner(false);
+                setScannedData(null);
+                setScannerError('');
+              }}
+              className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
