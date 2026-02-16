@@ -83,10 +83,8 @@ export default function AdminDashboard() {
   };
 
   const handleQRScan = async () => {
-    // 실제 QR 스캔은 html5-qrcode 라이브러리를 사용해야 하지만,
-    // 여기서는 간단히 수동 입력으로 테스트
-    if (!scannedData || !qrPassword) {
-      alert('QR 데이터와 비밀번호를 입력해주세요.');
+    if (!scannedData) {
+      alert('QR 데이터를 입력해주세요.');
       return;
     }
 
@@ -98,7 +96,7 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({
           qrData: scannedData,
-          password: qrPassword
+          password: '' // 비밀번호 불필요
         })
       });
 
@@ -108,7 +106,6 @@ export default function AdminDashboard() {
         alert('QR 스캔 성공!');
         setSelectedClient(data.client);
         setShowQRScanner(false);
-        setQrPassword('');
         setScannedData(null);
       } else {
         alert(data.error || 'QR 스캔에 실패했습니다.');
@@ -433,20 +430,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setScannedData(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   rows={3}
-                  placeholder='{"clientId":1,"email":"test@example.com","requirePassword":true}'
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  비밀번호 (0504)
-                </label>
-                <input
-                  type="password"
-                  value={qrPassword}
-                  onChange={(e) => setQrPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="0504"
+                  placeholder='{"clientId":1,"email":"test@example.com"}'
                 />
               </div>
             </div>
@@ -455,7 +439,6 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setShowQRScanner(false);
-                  setQrPassword('');
                   setScannedData(null);
                 }}
                 className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

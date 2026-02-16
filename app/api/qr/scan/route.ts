@@ -4,18 +4,10 @@ import { initDatabase, getDatabase } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { qrData, password } = body;
+    const { qrData } = body;
 
     // QR 데이터 파싱
     const data = JSON.parse(qrData);
-    
-    // 비밀번호 확인 (0504)
-    if (data.requirePassword && password !== '0504') {
-      return NextResponse.json(
-        { error: '비밀번호가 올바르지 않습니다.' },
-        { status: 401 }
-      );
-    }
 
     initDatabase();
     const db = getDatabase();
