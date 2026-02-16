@@ -605,11 +605,45 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">부채</label>
+                  <label className="text-sm font-medium text-gray-600">총 부채</label>
                   <p className="text-base font-semibold text-gray-900">
                     {selectedClient.debt?.toLocaleString()}원
                   </p>
                 </div>
+              </div>
+
+              {/* 부채 세부 내역 */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">기대출 내역</h5>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                    <span className="text-xs text-gray-600">정책자금</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {(selectedClient.debt_policy_fund || 0).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                    <span className="text-xs text-gray-600">신용대출</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {(selectedClient.debt_credit_loan || 0).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                    <span className="text-xs text-gray-600">2금융권 대출</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {(selectedClient.debt_secondary_loan || 0).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                    <span className="text-xs text-gray-600">카드론</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {(selectedClient.debt_card_loan || 0).toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">KCB 점수</label>
                   <p className="text-base font-semibold text-gray-900">{selectedClient.kcb_score}점</p>
