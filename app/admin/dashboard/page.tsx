@@ -647,7 +647,7 @@ export default function AdminDashboard() {
               <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
                 📋 기본 정보
               </h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">이름</label>
                   <p className="text-base font-semibold text-gray-900">{selectedClient.name}</p>
@@ -664,15 +664,38 @@ export default function AdminDashboard() {
                   <label className="text-sm font-medium text-gray-600">성별</label>
                   <p className="text-base font-semibold text-gray-900">{selectedClient.gender}</p>
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="text-sm font-medium text-gray-600">가입일</label>
                   <p className="text-base font-semibold text-gray-900">
                     {new Date(selectedClient.created_at).toLocaleString('ko-KR')}
                   </p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">SOHO 등급</label>
-                  <p className="text-base font-semibold text-green-600">{selectedClient.soho_grade}등급</p>
+              </div>
+
+              {/* 신용 등급 및 점수 (한 줄로 표시) */}
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg">
+                <label className="text-sm font-medium text-gray-700 mb-3 block">🏆 신용 등급 및 점수</label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">SOHO 등급</span>
+                    <span className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold text-lg shadow-md">
+                      {selectedClient.soho_grade}등급
+                    </span>
+                  </div>
+                  <div className="w-px h-8 bg-gray-300"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">KCB</span>
+                    <span className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-bold text-lg shadow-md">
+                      {selectedClient.kcb_score || '-'}점
+                    </span>
+                  </div>
+                  <div className="w-px h-8 bg-gray-300"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">NICE</span>
+                    <span className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-bold text-lg shadow-md">
+                      {selectedClient.nice_score}점
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -693,6 +716,12 @@ export default function AdminDashboard() {
                   <label className="text-sm font-medium text-gray-600">총 부채</label>
                   <p className="text-base font-semibold text-gray-900">
                     {selectedClient.debt?.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600">기술력 보유</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.has_technology ? '✅ 예' : '❌ 아니오'}
                   </p>
                 </div>
               </div>
@@ -728,16 +757,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 gap-4 mt-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">KCB 점수</label>
-                  <p className="text-base font-semibold text-gray-900">{selectedClient.kcb_score}점</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">NICE 점수</label>
-                  <p className="text-base font-semibold text-gray-900">{selectedClient.nice_score}점</p>
-                </div>
-                <div className="col-span-2">
                   <label className="text-sm font-medium text-gray-600">기술력 보유</label>
                   <p className="text-base font-semibold text-gray-900">
                     {selectedClient.has_technology ? '✅ 예' : '❌ 아니오'}
