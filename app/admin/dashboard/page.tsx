@@ -22,6 +22,9 @@ export default function AdminDashboard() {
     status: '접수대기',
     notes: ''
   });
+  const [editingFunds, setEditingFunds] = useState(false);
+  const [editedFunds, setEditedFunds] = useState<string[]>([]);
+  const [newFundInput, setNewFundInput] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -189,6 +192,68 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  // 정책자금 편집 시작
+  const handleStartEditFunds = () => {
+    setEditedFunds(selectedClient.policy_funds || []);
+    setEditingFunds(true);
+  };
+
+  // 정책자금 편집 취소
+  const handleCancelEditFunds = () => {
+    setEditingFunds(false);
+    setEditedFunds([]);
+    setNewFundInput('');
+  };
+
+  // 정책자금 추가
+  const handleAddFund = () => {
+    if (newFundInput.trim()) {
+      setEditedFunds([...editedFunds, newFundInput.trim()]);
+      setNewFundInput('');
+    }
+  };
+
+  // 정책자금 제거
+  const handleRemoveFund = (index: number) => {
+    setEditedFunds(editedFunds.filter((_, idx) => idx !== index));
+  };
+
+  // 정책자금 업데이트 저장
+  const handleSaveFunds = async () => {
+    const token = localStorage.getItem('adminToken');
+    
+    try {
+      const res = await fetch('/api/admin/update-policy-funds', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          policyFunds: editedFunds
+        })
+      });
+
+      if (res.ok) {
+        alert('정책자금이 업데이트되었습니다.');
+        setEditingFunds(false);
+        setNewFundInput('');
+        fetchData();
+        // selectedClient 업데이트
+        setSelectedClient({
+          ...selectedClient,
+          policy_funds: editedFunds
+        });
+      } else {
+        alert('업데이트에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating policy funds:', error);
+      alert('업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
   // 상태 직접 변경 (Notion 스타일)
   const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
     const statusList = ['접수대기', '접수완료', '진행중', '진행완료', '집행완료', '보완', '반려'];
@@ -315,10 +380,13 @@ export default function AdminDashboard() {
                     SOHO등급
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    KCB점수
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     NICE점수
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    선택 정책자금
+                    선택 정책자금 <span className="text-blue-600 font-bold">(갯수)</span>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
@@ -334,7 +402,7 @@ export default function AdminDashboard() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                       아직 신청한 회원이 없습니다.
                     </td>
                   </tr>
@@ -353,16 +421,33 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {client.nice_score}점
+                        <span className="px-2 py-1 bg-blue-50 text-blue-800 rounded">
+                          {client.kcb_score || '-'}점
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="px-2 py-1 bg-purple-50 text-purple-800 rounded">
+                          {client.nice_score}점
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {client.policy_funds && client.policy_funds.length > 0 ? (
-                          <div className="space-y-1">
-                            {client.policy_funds.map((fund: string, idx: number) => (
-                              <div key={idx} className="text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                                {fund}
+                          <div className="flex items-center gap-2">
+                            <span className="px-3 py-1 bg-blue-600 text-white rounded-full font-bold text-sm">
+                              {client.policy_funds.length}개
+                            </span>
+                            <details className="inline">
+                              <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-800">
+                                보기
+                              </summary>
+                              <div className="mt-2 space-y-1">
+                                {client.policy_funds.map((fund: string, idx: number) => (
+                                  <div key={idx} className="text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                                    {fund}
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </details>
                           </div>
                         ) : (
                           <span className="text-gray-400 text-xs">미선택</span>
@@ -662,18 +747,82 @@ export default function AdminDashboard() {
             </div>
 
             {/* 선택한 정책자금 */}
-            {selectedClient.policy_funds && selectedClient.policy_funds.length > 0 && (
+            {(selectedClient.policy_funds && selectedClient.policy_funds.length > 0) || editingFunds ? (
               <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
-                  💼 선택한 정책자금
-                </h4>
-                <div className="space-y-2">
-                  {selectedClient.policy_funds.map((fund: string, idx: number) => (
-                    <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <span className="font-medium text-gray-800">{fund}</span>
+                <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    💼 진행 중인 정책자금 <span className="text-blue-600">({editingFunds ? editedFunds.length : (selectedClient.policy_funds?.length || 0)}개)</span>
+                  </h4>
+                  {!editingFunds ? (
+                    <button
+                      onClick={handleStartEditFunds}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      ✏️ 수정
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCancelEditFunds}
+                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleSaveFunds}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
+                        저장
+                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
+
+                {!editingFunds ? (
+                  <div className="space-y-2">
+                    {selectedClient.policy_funds?.map((fund: string, idx: number) => (
+                      <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                        <span className="font-medium text-gray-800">{fund}</span>
+                        <span className="text-xs text-blue-600 font-semibold">진행중</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {editedFunds.map((fund: string, idx: number) => (
+                      <div key={idx} className="p-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+                        <span className="font-medium text-gray-800">{fund}</span>
+                        <button
+                          onClick={() => handleRemoveFund(idx)}
+                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+                        >
+                          제거
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newFundInput}
+                        onChange={(e) => setNewFundInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddFund()}
+                        placeholder="새 정책자금 이름 입력..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                      <button
+                        onClick={handleAddFund}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        추가
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center text-gray-500">
+                선택한 정책자금이 없습니다.
               </div>
             )}
 
