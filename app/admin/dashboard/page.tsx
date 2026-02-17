@@ -1007,7 +1007,7 @@ export default function AdminDashboard() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowAddClientModal(true)}
-              className="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-900 transition-colors font-medium flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -1016,7 +1016,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setShowQRScanner(true)}
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-900 transition-colors font-medium"
             >
               QR 스캔
             </button>
@@ -1054,7 +1054,7 @@ export default function AdminDashboard() {
             />
             <button
               onClick={fetchData}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
             >
               새로고침
             </button>
@@ -1137,7 +1137,7 @@ export default function AdminDashboard() {
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {client.policy_funds && client.policy_funds.length > 0 ? (
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 bg-blue-600 text-white rounded-full font-bold text-sm">
+                            <span className="px-3 py-1 bg-gray-800 text-white rounded-full font-bold text-sm">
                               {client.policy_funds.length}개
                             </span>
                             <details className="inline">
@@ -1268,7 +1268,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={handleUpdateStatus}
-                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
               >
                 업데이트
               </button>
@@ -1316,7 +1316,7 @@ export default function AdminDashboard() {
                 />
                 <button
                   onClick={handleQRScan}
-                  className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  className="w-full py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
                 >
                   수동 입력 확인
                 </button>
@@ -1383,21 +1383,21 @@ export default function AdminDashboard() {
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500">SOHO 등급</span>
-                    <span className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold text-lg shadow-md">
+                    <span className="px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-bold text-lg shadow-md">
                       {selectedClient.soho_grade}등급
                     </span>
                   </div>
                   <div className="w-px h-8 bg-gray-300"></div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500">KCB</span>
-                    <span className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-bold text-lg shadow-md">
+                    <span className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg font-bold text-lg shadow-md">
                       {selectedClient.kcb_score || '-'}점
                     </span>
                   </div>
                   <div className="w-px h-8 bg-gray-300"></div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500">NICE</span>
-                    <span className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-bold text-lg shadow-md">
+                    <span className="px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-bold text-lg shadow-md">
                       {selectedClient.nice_score}점
                     </span>
                   </div>
@@ -1414,7 +1414,7 @@ export default function AdminDashboard() {
                 {!editingDebt ? (
                   <button
                     onClick={handleStartEditDebt}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                   >
                     ✏️ 수정
                   </button>
@@ -1428,7 +1428,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={handleSaveDebt}
-                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                     >
                       저장
                     </button>
@@ -1578,13 +1578,13 @@ export default function AdminDashboard() {
                     <div className="flex gap-2">
                       <button
                         onClick={handleStartEditFunds}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                       >
                         ✏️ 수정
                       </button>
                       <button
                         onClick={handleStartEditFunds}
-                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
                       >
                         ➕ 수동 추가
                       </button>
@@ -1599,7 +1599,7 @@ export default function AdminDashboard() {
                       </button>
                       <button
                         onClick={handleSaveFunds}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                       >
                         저장
                       </button>
@@ -1652,7 +1652,7 @@ export default function AdminDashboard() {
                       />
                       <button
                         onClick={handleAddFund}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
                       >
                         추가
                       </button>
@@ -1666,7 +1666,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-500 mb-3">선택한 정책자금이 없습니다.</p>
                   <button
                     onClick={handleStartEditFunds}
-                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                    className="px-6 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
                   >
                     ➕ 정책자금 수동 추가
                   </button>
@@ -1685,7 +1685,7 @@ export default function AdminDashboard() {
                     {/* AI 진단 버튼 */}
                     <button
                       onClick={handleStartAIDiagnosis}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
+                      className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
                     >
                       🤖 AI 진단
                     </button>
@@ -1693,7 +1693,7 @@ export default function AdminDashboard() {
                     {!editingFundAmounts ? (
                       <button
                         onClick={handleStartEditFundAmounts}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                       >
                         💵 금액 입력
                       </button>
@@ -1707,7 +1707,7 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={handleSaveFundAmounts}
-                          className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                          className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
                         >
                           저장
                         </button>
@@ -1721,7 +1721,7 @@ export default function AdminDashboard() {
                     {selectedClient.policy_funds.map((fund: string, idx: number) => {
                       const amount = selectedClient.fund_amounts?.[fund] || 0;
                       return (
-                        <div key={idx} className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+                        <div key={idx} className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-green-200 rounded-lg">
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-gray-800">{fund}</span>
                             <span className="text-xl font-bold text-green-700">
@@ -1780,7 +1780,7 @@ export default function AdminDashboard() {
             <div className="mb-6">
               <button
                 onClick={handleGenerateShareLink}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+                className="w-full py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
               >
                 🔗 클라이언트에게 공유할 링크 생성
               </button>
@@ -1818,7 +1818,7 @@ export default function AdminDashboard() {
               {selectedClient.application_status && (selectedClient.application_status === '반려' || selectedClient.application_status === '보완') && (
                 <button
                   onClick={handleRequestReview}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1833,7 +1833,7 @@ export default function AdminDashboard() {
                   <h4 className="text-lg font-semibold text-gray-800">
                     📎 첨부 파일 ({clientFiles.length}개)
                   </h4>
-                  <label className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer">
+                  <label className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium cursor-pointer">
                     📤 파일 업로드
                     <input
                       ref={fileInputRef}
@@ -1910,13 +1910,13 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleCalculateLimit(selectedClient.id)}
-                  className="py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
                 >
                   💰 한도 조회
                 </button>
                 <button
                   onClick={() => router.push(`/admin/document-editor/${selectedClient.id}`)}
-                  className="py-3 px-4 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                  className="py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
                 >
                   📝 문서 편집
                 </button>
@@ -1925,7 +1925,7 @@ export default function AdminDashboard() {
               {/* 📊 AI 분석 보고서 버튼 */}
               <button
                 onClick={handleGenerateReport}
-                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1936,7 +1936,7 @@ export default function AdminDashboard() {
               {/* 📱 카카오 알림톡 발송 버튼 */}
               <button
                 onClick={() => setShowAlimtalkModal(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-900 rounded-lg font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
@@ -1994,7 +1994,7 @@ export default function AdminDashboard() {
                 />
                 <button
                   onClick={handleCopyShareLink}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold whitespace-nowrap"
+                  className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold whitespace-nowrap"
                 >
                   📋 복사
                 </button>
@@ -2051,7 +2051,7 @@ export default function AdminDashboard() {
             ) : aiDiagnosisResult ? (
               <div className="space-y-6">
                 {/* SOHO 등급 */}
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-xl border-2 border-purple-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">SOHO 신용등급</p>
@@ -2145,7 +2145,7 @@ export default function AdminDashboard() {
                       setShowAIDiagnosis(false);
                       setAiDiagnosisResult(null);
                     }}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
+                    className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
                   >
                     확인
                   </button>
@@ -2203,7 +2203,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* 전체 최대 한도 */}
-                <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300">
+                <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border-2 border-green-300">
                   <h4 className="font-bold text-xl mb-2 text-green-800">전체 최대 대출 가능 한도</h4>
                   <div className="text-3xl font-bold text-green-600">
                     {(limitData.maxLoanLimit || 0).toLocaleString()}원
@@ -2507,7 +2507,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={handleAddClient}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                className="flex-1 py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
               >
                 등록하기
               </button>
@@ -2520,7 +2520,7 @@ export default function AdminDashboard() {
       {showAlimtalkModal && selectedClient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-gradient-to-r from-yellow-400 to-yellow-500 p-6 rounded-t-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-800 p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <svg className="w-8 h-8 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
@@ -2688,7 +2688,7 @@ export default function AdminDashboard() {
                   className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
                     sendingAlimtalk || !selectedClient.phone
                       ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600'
+                      : 'bg-gradient-to-r from-gray-700 to-gray-800 text-gray-900 hover:from-yellow-500 hover:to-yellow-600'
                   }`}
                 >
                   {sendingAlimtalk ? (
@@ -2719,7 +2719,7 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* 헤더 */}
-            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-t-2xl z-10">
+            <div className="sticky top-0 bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-t-2xl z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2830,7 +2830,7 @@ export default function AdminDashboard() {
                     소호등급 분석
                   </h3>
                   
-                  <div className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl p-6 text-white text-center mb-4">
+                  <div className="bg-gradient-to-r from-gray-600 to-gray-700 rounded-xl p-6 text-white text-center mb-4">
                     <p className="text-sm font-semibold mb-2 opacity-90">현재 등급</p>
                     <p className="text-5xl font-bold">{reportData.sohoAnalysis.grade}</p>
                   </div>
@@ -2880,7 +2880,7 @@ export default function AdminDashboard() {
                   {reportData.fundAnalysis.recommendedFunds.length > 0 ? (
                     <div className="space-y-4">
                       {reportData.fundAnalysis.recommendedFunds.map((fund: any, idx: number) => (
-                        <div key={idx} className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-4 border-l-4 border-green-500 shadow">
+                        <div key={idx} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-l-4 border-green-500 shadow">
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
                               <h4 className="font-bold text-gray-800 text-lg mb-1">{fund.name}</h4>

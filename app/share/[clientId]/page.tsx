@@ -95,11 +95,11 @@ export default function ShareClientInfo() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-5xl mx-auto">
         {/* 헤더 */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-gray-700 via-gray-800 to-gray-900"></div>
           
           <div className="flex justify-between items-start">
             <div className="flex-1">
@@ -164,7 +164,7 @@ export default function ShareClientInfo() {
             신용 점수
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl p-6 text-white shadow-lg">
               <p className="text-sm font-semibold mb-2 opacity-90">KCB 신용점수</p>
               <p className="text-4xl font-bold">{clientData.kcb_score || 'N/A'}</p>
               <div className="mt-3 h-2 bg-white bg-opacity-30 rounded-full overflow-hidden">
@@ -174,7 +174,7 @@ export default function ShareClientInfo() {
                 ></div>
               </div>
             </div>
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl p-6 text-white shadow-lg">
               <p className="text-sm font-semibold mb-2 opacity-90">NICE 신용점수</p>
               <p className="text-4xl font-bold">{clientData.nice_score || 'N/A'}</p>
               <div className="mt-3 h-2 bg-white bg-opacity-30 rounded-full overflow-hidden">
@@ -225,7 +225,7 @@ export default function ShareClientInfo() {
             <span className="text-2xl">⭐</span>
             소호등급
           </h2>
-          <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-xl p-8 text-white text-center shadow-lg">
+          <div className="bg-gradient-to-r from-gray-600 via-gray-700 to-gray-800 rounded-xl p-8 text-white text-center shadow-lg">
             <p className="text-sm font-semibold mb-2 opacity-90">AI 평가 등급</p>
             <p className="text-6xl font-bold">{clientData.soho_grade || 'N/A'}</p>
           </div>
