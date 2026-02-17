@@ -1539,7 +1539,7 @@ export default function AdminDashboard() {
                           setEditingClientEmail(false);
                           setNewClientEmail('');
                         }}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         취소
                       </button>
@@ -1552,7 +1552,7 @@ export default function AdminDashboard() {
                           setEditingClientEmail(true);
                           setNewClientEmail(selectedClient.email);
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                        className="px-3 py-1 bg-gray-700 text-white rounded text-xs font-medium hover:bg-gray-800 transition-all"
                       >
                         수정
                       </button>
@@ -1581,7 +1581,7 @@ export default function AdminDashboard() {
                           setEditingClientPhone(false);
                           setNewClientPhone('');
                         }}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         취소
                       </button>
@@ -1594,7 +1594,7 @@ export default function AdminDashboard() {
                           setEditingClientPhone(true);
                           setNewClientPhone(selectedClient.phone || '');
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                        className="px-3 py-1 bg-gray-700 text-white rounded text-xs font-medium hover:bg-gray-800 transition-all"
                       >
                         수정
                       </button>
@@ -1623,7 +1623,7 @@ export default function AdminDashboard() {
                       setNewPassword('');
                       setConfirmPassword('');
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all text-sm font-medium"
+                    className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
                   >
                     🔑 비밀번호 재설정
                   </button>
@@ -3313,13 +3313,13 @@ export default function AdminDashboard() {
                   setNewPassword('');
                   setConfirmPassword('');
                 }}
-                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="flex-1 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
                 취소
               </button>
               <button
                 onClick={handleResetClientPassword}
-                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium"
+                className="flex-1 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all font-medium"
               >
                 비밀번호 재설정
               </button>
