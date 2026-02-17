@@ -29,14 +29,6 @@ export default function AdminDashboard() {
   const [fundAmounts, setFundAmounts] = useState<{[key: string]: number}>({});
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState('');
-  const [editingDebt, setEditingDebt] = useState(false);
-  const [debtData, setDebtData] = useState({
-    debt: 0,
-    debt_policy_fund: 0,
-    debt_credit_loan: 0,
-    debt_secondary_loan: 0,
-    debt_card_loan: 0
-  });
 
   useEffect(() => {
     fetchData();
@@ -335,58 +327,6 @@ export default function AdminDashboard() {
     alert('링크가 복사되었습니다!');
   };
 
-  // 부채 정보 수정 시작
-  const handleStartEditDebt = () => {
-    setDebtData({
-      debt: selectedClient.debt || 0,
-      debt_policy_fund: selectedClient.debt_policy_fund || 0,
-      debt_credit_loan: selectedClient.debt_credit_loan || 0,
-      debt_secondary_loan: selectedClient.debt_secondary_loan || 0,
-      debt_card_loan: selectedClient.debt_card_loan || 0
-    });
-    setEditingDebt(true);
-  };
-
-  // 부채 정보 수정 취소
-  const handleCancelEditDebt = () => {
-    setEditingDebt(false);
-  };
-
-  // 부채 정보 저장
-  const handleSaveDebt = async () => {
-    const token = localStorage.getItem('adminToken');
-    try {
-      const res = await fetch('/api/admin/update-debt', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          clientId: selectedClient.id,
-          ...debtData
-        })
-      });
-
-      if (res.ok) {
-        alert('부채 정보가 업데이트되었습니다.');
-        setEditingDebt(false);
-        fetchData();
-        
-        // 선택된 클라이언트 정보도 업데이트
-        setSelectedClient({
-          ...selectedClient,
-          ...debtData
-        });
-      } else {
-        alert('업데이트에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Error updating debt:', error);
-      alert('업데이트 중 오류가 발생했습니다.');
-    }
-  };
-
   // 상태 직접 변경 (Notion 스타일)
   const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
     const statusList = ['접수대기', '접수완료', '진행중', '진행완료', '집행완료', '보완', '반려'];
@@ -413,6 +353,127 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error updating status:', error);
+    }
+  };
+
+  // 정책자금 삭제 (관리자용)
+  const handleDeleteFundFromClient = async (fundName: string) => {
+    if (!selectedClient) return;
+    
+    if (!confirm(`"${fundName}"을(를) 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/delete-fund-from-client', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientId: selectedClient.id,
+          fundName 
+        })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert(result.message);
+        fetchData();
+        
+        // 모든 정책자금이 삭제된 경우 모달 닫기
+        if (result.deleted_all) {
+          setShowClientDetail(false);
+          setSelectedClient(null);
+        } else {
+          // 선택된 클라이언트 정보 업데이트
+          const updatedFunds = selectedClient.policy_funds.filter((f: string) => f !== fundName);
+          setSelectedClient({
+            ...selectedClient,
+            policy_funds: updatedFunds
+          });
+        }
+      } else {
+        alert(result.error || '삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting fund:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 재심사 요청 (관리자용)
+  const handleRequestReview = async () => {
+    if (!selectedClient) return;
+    
+    if (!confirm(`"${selectedClient.name}" 클라이언트의 재심사를 요청하시겠습니까? 상태가 "접수대기"로 변경됩니다.`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/request-client-review', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientId: selectedClient.id })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert(result.message);
+        fetchData();
+        // 선택된 클라이언트 상태 업데이트
+        setSelectedClient({
+          ...selectedClient,
+          status: '접수대기'
+        });
+      } else {
+        alert(result.error || '재심사 요청에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error requesting review:', error);
+      alert('재심사 요청 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 클라이언트 삭제
+  const handleDeleteClient = async (clientId: number, clientName: string) => {
+    if (!confirm(`정말로 "${clientName}" 클라이언트와 관련된 모든 데이터를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/delete-client', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientId })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert(result.message);
+        fetchData();
+        // 모달이 열려있으면 닫기
+        setShowClientDetail(false);
+        setSelectedClient(null);
+      } else {
+        alert(result.error || '삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      alert('삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -835,148 +896,34 @@ export default function AdminDashboard() {
 
             {/* 재무 정보 */}
             <div className="mb-6">
-              <div className="flex justify-between items-center mb-3 pb-2 border-b">
-                <h4 className="text-lg font-semibold text-gray-800">
-                  💰 재무 정보
-                </h4>
-                {!editingDebt ? (
-                  <button
-                    onClick={handleStartEditDebt}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    ✏️ 부채 수정
-                  </button>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleCancelEditDebt}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-400 transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleSaveDebt}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                    >
-                      저장
-                    </button>
-                  </div>
-                )}
-              </div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
+                💰 재무 정보
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">연매출</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.annual_revenue?.toLocaleString()}원
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">총 부채</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.debt?.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600">기술력 보유</label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedClient.has_technology ? '✅ 예' : '❌ 아니오'}
+                  </p>
+                </div>
               </div>
 
-              {!editingDebt ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">연매출</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {selectedClient.annual_revenue?.toLocaleString()}원
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">총 부채</label>
-                    <p className="text-base font-semibold text-red-600">
-                      {selectedClient.debt?.toLocaleString()}원
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">정책자금 대출</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {(selectedClient.debt_policy_fund || 0).toLocaleString()}원
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">신용대출</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {(selectedClient.debt_credit_loan || 0).toLocaleString()}원
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">2금융권 대출</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {(selectedClient.debt_secondary_loan || 0).toLocaleString()}원
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">카드론</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {(selectedClient.debt_card_loan || 0).toLocaleString()}원
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-600">기술력 보유</label>
-                    <p className="text-base font-semibold text-gray-900">
-                      {selectedClient.has_technology ? '보유' : '미보유'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">연매출 (수정 불가)</label>
-                    <input
-                      type="text"
-                      value={selectedClient.annual_revenue?.toLocaleString()}
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">총 부채 *</label>
-                    <input
-                      type="number"
-                      value={debtData.debt}
-                      onChange={(e) => setDebtData({...debtData, debt: parseInt(e.target.value) || 0})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="총 부채 금액"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">정책자금 대출</label>
-                      <input
-                        type="number"
-                        value={debtData.debt_policy_fund}
-                        onChange={(e) => setDebtData({...debtData, debt_policy_fund: parseInt(e.target.value) || 0})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">신용대출</label>
-                      <input
-                        type="number"
-                        value={debtData.debt_credit_loan}
-                        onChange={(e) => setDebtData({...debtData, debt_credit_loan: parseInt(e.target.value) || 0})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">2금융권 대출</label>
-                      <input
-                        type="number"
-                        value={debtData.debt_secondary_loan}
-                        onChange={(e) => setDebtData({...debtData, debt_secondary_loan: parseInt(e.target.value) || 0})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">카드론</label>
-                      <input
-                        type="number"
-                        value={debtData.debt_card_loan}
-                        onChange={(e) => setDebtData({...debtData, debt_card_loan: parseInt(e.target.value) || 0})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      💡 <strong>참고:</strong> 총 부채는 필수 항목이며, 세부 대출 내역은 선택사항입니다.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+              {/* 부채 세부 내역 */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">기대출 내역</h5>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
                     <span className="text-xs text-gray-600">정책자금</span>
                     <span className="text-sm font-medium text-gray-900">
@@ -1049,9 +996,20 @@ export default function AdminDashboard() {
                 {!editingFunds ? (
                   <div className="space-y-2">
                     {selectedClient.policy_funds?.map((fund: string, idx: number) => (
-                      <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                      <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between hover:shadow-md transition-shadow">
                         <span className="font-medium text-gray-800">{fund}</span>
-                        <span className="text-xs text-blue-600 font-semibold">진행중</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-blue-600 font-semibold">진행중</span>
+                          <button
+                            onClick={() => handleDeleteFundFromClient(fund)}
+                            className="p-1 hover:bg-red-100 rounded-lg transition-colors group"
+                            title="이 정책자금 삭제"
+                          >
+                            <svg className="w-5 h-5 text-gray-400 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1222,16 +1180,43 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* 닫기 버튼 */}
-            <button
-              onClick={() => {
-                setShowClientDetail(false);
-                setSelectedClient(null);
-              }}
-              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
-            >
-              닫기
-            </button>
+            {/* 액션 버튼들 */}
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              {/* 재심사 버튼 - 반려 또는 보완 상태일 때만 표시 */}
+              {selectedClient.application_status && (selectedClient.application_status === '반려' || selectedClient.application_status === '보완') && (
+                <button
+                  onClick={handleRequestReview}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  재심사 요청하기
+                </button>
+              )}
+
+              {/* 클라이언트 삭제 버튼 */}
+              <button
+                onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}
+                className="w-full py-2 px-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                클라이언트 삭제
+              </button>
+
+              {/* 닫기 버튼 */}
+              <button
+                onClick={() => {
+                  setShowClientDetail(false);
+                  setSelectedClient(null);
+                }}
+                className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
