@@ -1414,12 +1414,20 @@ export default function AdminDashboard() {
                     💼 진행 중인 정책자금 <span className="text-blue-600">({editingFunds ? editedFunds.length : (selectedClient.policy_funds?.length || 0)}개)</span>
                   </h4>
                   {!editingFunds ? (
-                    <button
-                      onClick={handleStartEditFunds}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                    >
-                      ✏️ 수정
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleStartEditFunds}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        ✏️ 수정
+                      </button>
+                      <button
+                        onClick={handleStartEditFunds}
+                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                      >
+                        ➕ 수동 추가
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex gap-2">
                       <button
@@ -1492,8 +1500,16 @@ export default function AdminDashboard() {
                 )}
               </div>
             ) : (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                선택한 정책자금이 없습니다.
+              <div className="mb-6">
+                <div className="p-4 bg-gray-50 rounded-lg text-center">
+                  <p className="text-gray-500 mb-3">선택한 정책자금이 없습니다.</p>
+                  <button
+                    onClick={handleStartEditFunds}
+                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                  >
+                    ➕ 정책자금 수동 추가
+                  </button>
+                </div>
               </div>
             )}
 
