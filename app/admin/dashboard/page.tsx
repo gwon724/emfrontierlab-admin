@@ -1167,7 +1167,7 @@ export default function AdminDashboard() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowAddClientModal(true)}
-              className="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-900 transition-colors font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-black rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -1176,13 +1176,13 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setShowQRScanner(true)}
-              className="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+              className="px-4 py-2 bg-black rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
               QR 스캔
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 bg-black rounded-lg hover:bg-gray-700 transition-colors"
             >
               로그아웃
             </button>
@@ -1214,7 +1214,7 @@ export default function AdminDashboard() {
             />
             <button
               onClick={fetchData}
-              className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
+              className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
               새로고침
             </button>
@@ -1422,13 +1422,13 @@ export default function AdminDashboard() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowStatusModal(false)}
-                className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleUpdateStatus}
-                className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
+                className="flex-1 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
               >
                 업데이트
               </button>
@@ -1476,7 +1476,7 @@ export default function AdminDashboard() {
                 />
                 <button
                   onClick={handleQRScan}
-                  className="w-full py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
+                  className="w-full py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
                 >
                   수동 입력 확인
                 </button>
@@ -1491,7 +1491,7 @@ export default function AdminDashboard() {
                 setScannedData(null);
                 setScannerError('');
               }}
-              className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="w-full py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
               닫기
             </button>
@@ -1530,7 +1530,7 @@ export default function AdminDashboard() {
                       />
                       <button
                         onClick={handleUpdateClientEmail}
-                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-black text-white hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         저장
                       </button>
@@ -1539,7 +1539,7 @@ export default function AdminDashboard() {
                           setEditingClientEmail(false);
                           setNewClientEmail('');
                         }}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         취소
                       </button>
@@ -1552,7 +1552,7 @@ export default function AdminDashboard() {
                           setEditingClientEmail(true);
                           setNewClientEmail(selectedClient.email);
                         }}
-                        className="px-3 py-1 bg-gray-700 text-white rounded text-xs font-medium hover:bg-gray-800 transition-all"
+                        className="px-3 py-1 bg-black text-white rounded text-xs font-medium hover:bg-gray-700 transition-all"
                       >
                         수정
                       </button>
@@ -1572,7 +1572,7 @@ export default function AdminDashboard() {
                       />
                       <button
                         onClick={handleUpdateClientPhone}
-                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-black text-white hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         저장
                       </button>
@@ -1581,7 +1581,7 @@ export default function AdminDashboard() {
                           setEditingClientPhone(false);
                           setNewClientPhone('');
                         }}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
+                        className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-all text-sm font-medium"
                       >
                         취소
                       </button>
@@ -1594,7 +1594,7 @@ export default function AdminDashboard() {
                           setEditingClientPhone(true);
                           setNewClientPhone(selectedClient.phone || '');
                         }}
-                        className="px-3 py-1 bg-gray-700 text-white rounded text-xs font-medium hover:bg-gray-800 transition-all"
+                        className="px-3 py-1 bg-black text-white rounded text-xs font-medium hover:bg-gray-700 transition-all"
                       >
                         수정
                       </button>
@@ -1623,7 +1623,7 @@ export default function AdminDashboard() {
                       setNewPassword('');
                       setConfirmPassword('');
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
+                    className="px-4 py-2 bg-black text-white hover:bg-gray-700 transition-all text-sm font-medium"
                   >
                     🔑 비밀번호 재설정
                   </button>
@@ -1670,7 +1670,7 @@ export default function AdminDashboard() {
                 {!editingDebt ? (
                   <button
                     onClick={handleStartEditDebt}
-                    className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                    className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                   >
                     ✏️ 수정
                   </button>
@@ -1684,7 +1684,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={handleSaveDebt}
-                      className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                      className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                     >
                       저장
                     </button>
@@ -1834,13 +1834,13 @@ export default function AdminDashboard() {
                     <div className="flex gap-2">
                       <button
                         onClick={handleStartEditFunds}
-                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                        className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                       >
                         ✏️ 수정
                       </button>
                       <button
                         onClick={handleStartEditFunds}
-                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                        className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-all font-medium shadow-md"
                       >
                         ➕ 수동 추가
                       </button>
@@ -1855,7 +1855,7 @@ export default function AdminDashboard() {
                       </button>
                       <button
                         onClick={handleSaveFunds}
-                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                        className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                       >
                         저장
                       </button>
@@ -1908,7 +1908,7 @@ export default function AdminDashboard() {
                       />
                       <button
                         onClick={handleAddFund}
-                        className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                        className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
                       >
                         추가
                       </button>
@@ -1922,7 +1922,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-500 mb-3">선택한 정책자금이 없습니다.</p>
                   <button
                     onClick={handleStartEditFunds}
-                    className="px-6 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all font-medium shadow-md"
+                    className="px-6 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-all font-medium shadow-md"
                   >
                     ➕ 정책자금 수동 추가
                   </button>
@@ -1941,7 +1941,7 @@ export default function AdminDashboard() {
                     {/* AI 진단 버튼 */}
                     <button
                       onClick={handleStartAIDiagnosis}
-                      className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
+                      className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-all font-medium shadow-md"
                     >
                       🤖 AI 진단
                     </button>
@@ -1949,7 +1949,7 @@ export default function AdminDashboard() {
                     {!editingFundAmounts ? (
                       <button
                         onClick={handleStartEditFundAmounts}
-                        className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                        className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                       >
                         💵 금액 입력
                       </button>
@@ -1963,7 +1963,7 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={handleSaveFundAmounts}
-                          className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                          className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                         >
                           저장
                         </button>
@@ -2036,7 +2036,7 @@ export default function AdminDashboard() {
             <div className="mb-6">
               <button
                 onClick={handleGenerateShareLink}
-                className="w-full py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+                className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-all shadow-lg"
               >
                 🔗 클라이언트에게 공유할 링크 생성
               </button>
@@ -2074,7 +2074,7 @@ export default function AdminDashboard() {
               {selectedClient.application_status && (selectedClient.application_status === '반려' || selectedClient.application_status === '보완') && (
                 <button
                   onClick={handleRequestReview}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -2089,7 +2089,7 @@ export default function AdminDashboard() {
                   <h4 className="text-lg font-semibold text-gray-800">
                     📎 첨부 파일 ({clientFiles.length}개)
                   </h4>
-                  <label className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors font-medium cursor-pointer">
+                  <label className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium cursor-pointer">
                     📤 파일 업로드
                     <input
                       ref={fileInputRef}
@@ -2166,13 +2166,13 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleCalculateLimit(selectedClient.id)}
-                  className="py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+                  className="py-3 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                 >
                   💰 한도 조회
                 </button>
                 <button
                   onClick={() => router.push(`/admin/document-editor/${selectedClient.id}`)}
-                  className="py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+                  className="py-3 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                 >
                   📝 문서 편집
                 </button>
@@ -2181,7 +2181,7 @@ export default function AdminDashboard() {
               {/* 📊 AI 분석 보고서 버튼 */}
               <button
                 onClick={handleGenerateReport}
-                className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-bold hover:from-gray-900 hover:to-black transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-black text-white hover:bg-gray-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -2192,7 +2192,7 @@ export default function AdminDashboard() {
               {/* 📱 카카오 알림톡 발송 버튼 */}
               <button
                 onClick={() => setShowAlimtalkModal(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-bold hover:from-gray-800 hover:to-gray-900 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-black text-white rounded-lg font-bold hover:bg-gray-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
@@ -2203,7 +2203,7 @@ export default function AdminDashboard() {
               {/* 클라이언트 삭제 버튼 */}
               <button
                 onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}
-                className="w-full py-2 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-2 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2217,7 +2217,7 @@ export default function AdminDashboard() {
                   setShowClientDetail(false);
                   setSelectedClient(null);
                 }}
-                className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+                className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
               >
                 닫기
               </button>
@@ -2250,7 +2250,7 @@ export default function AdminDashboard() {
                 />
                 <button
                   onClick={handleCopyShareLink}
-                  className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold whitespace-nowrap"
+                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold whitespace-nowrap"
                 >
                   📋 복사
                 </button>
@@ -2270,7 +2270,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => setShowShareModal(false)}
-              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
             >
               닫기
             </button>
@@ -2401,7 +2401,7 @@ export default function AdminDashboard() {
                       setShowAIDiagnosis(false);
                       setAiDiagnosisResult(null);
                     }}
-                    className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
+                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-700 transition-all font-medium shadow-md"
                   >
                     확인
                   </button>
@@ -2518,7 +2518,7 @@ export default function AdminDashboard() {
                 setShowLimitModal(false);
                 setLimitData(null);
               }}
-              className="w-full mt-6 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              className="w-full mt-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
             >
               닫기
             </button>
@@ -2775,7 +2775,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={handleAddClient}
-                className="flex-1 py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+                className="flex-1 py-3 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
               >
                 등록하기
               </button>
@@ -2946,7 +2946,7 @@ export default function AdminDashboard() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAlimtalkModal(false)}
-                  className="flex-1 py-3 px-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                  className="flex-1 py-3 px-4 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
                 >
                   취소
                 </button>
@@ -2956,7 +2956,7 @@ export default function AdminDashboard() {
                   className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
                     sendingAlimtalk || !selectedClient.phone
                       ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:from-gray-900 hover:to-black'
+                      : 'bg-black text-white hover:bg-gray-700'
                   }`}
                 >
                   {sendingAlimtalk ? (
@@ -3230,7 +3230,7 @@ export default function AdminDashboard() {
             <div className="sticky bottom-0 bg-white p-4 border-t">
               <button
                 onClick={() => setShowReportModal(false)}
-                className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+                className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
               >
                 닫기
               </button>
@@ -3313,13 +3313,13 @@ export default function AdminDashboard() {
                   setNewPassword('');
                   setConfirmPassword('');
                 }}
-                className="flex-1 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
                 취소
               </button>
               <button
                 onClick={handleResetClientPassword}
-                className="flex-1 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all font-medium"
+                className="flex-1 py-3 bg-black text-white hover:bg-gray-700 transition-all font-medium"
               >
                 비밀번호 재설정
               </button>
