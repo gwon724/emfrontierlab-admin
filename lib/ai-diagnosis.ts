@@ -17,6 +17,7 @@ export interface ClientData {
 export interface DiagnosisResult {
   sohoGrade: string;
   recommendedFunds: string[];
+  maxLoanLimit: number;  // 최대 대출 한도 추가
   details: string;
 }
 
@@ -62,6 +63,60 @@ export function calculateSOHOGrade(client: ClientData): string {
   else return 'D';
 }
 
+// 최대 대출 한도 계산 (AI 로직)
+export function calculateMaxLoanLimit(client: ClientData, sohoGrade: string): number {
+  const niceScore = client.niceScore || client.nice_score || 0;
+  const annualRevenue = client.annualRevenue || client.annual_revenue || 0;
+  const debt = client.debt || 0;
+  const hasTechnology = client.hasTechnology ?? client.has_technology ?? false;
+  
+  // 기본 한도 (등급별)
+  let baseLimit = 0;
+  switch (sohoGrade) {
+    case 'S': baseLimit = 1000000000; break; // 10억
+    case 'A': baseLimit = 700000000; break;  // 7억
+    case 'B': baseLimit = 500000000; break;  // 5억
+    case 'C': baseLimit = 300000000; break;  // 3억
+    case 'D': baseLimit = 100000000; break;  // 1억
+    default: baseLimit = 50000000; break;    // 5천만
+  }
+  
+  // 매출액 기반 한도 (연매출의 50%)
+  const revenueBasedLimit = annualRevenue * 0.5;
+  
+  // 부채 감안 한도 (총 부채가 연매출의 80% 이하일 때만 전액 제공)
+  const debtRatio = annualRevenue > 0 ? (debt / annualRevenue) * 100 : 100;
+  let debtAdjustment = 1.0;
+  if (debtRatio > 150) debtAdjustment = 0.3;      // 부채비율 150% 초과 시 30%만
+  else if (debtRatio > 100) debtAdjustment = 0.5; // 100~150% 시 50%
+  else if (debtRatio > 80) debtAdjustment = 0.7;  // 80~100% 시 70%
+  else if (debtRatio > 50) debtAdjustment = 0.9;  // 50~80% 시 90%
+  
+  // 신용점수 보정
+  let creditAdjustment = 1.0;
+  if (niceScore >= 900) creditAdjustment = 1.2;       // 우수 +20%
+  else if (niceScore >= 850) creditAdjustment = 1.1;  // 양호 +10%
+  else if (niceScore >= 800) creditAdjustment = 1.0;  // 보통 그대로
+  else if (niceScore >= 750) creditAdjustment = 0.9;  // 주의 -10%
+  else if (niceScore >= 700) creditAdjustment = 0.8;  // 낮음 -20%
+  else creditAdjustment = 0.6;                         // 매우 낮음 -40%
+  
+  // 기술력 보정 (+10%)
+  const techAdjustment = hasTechnology ? 1.1 : 1.0;
+  
+  // 최종 한도 계산 (기본 한도와 매출 기반 한도 중 큰 값 선택)
+  let finalLimit = Math.max(baseLimit, revenueBasedLimit);
+  
+  // 각종 보정 적용
+  finalLimit = finalLimit * debtAdjustment * creditAdjustment * techAdjustment;
+  
+  // 최소 한도 5천만원, 최대 한도 50억원
+  finalLimit = Math.max(50000000, Math.min(5000000000, finalLimit));
+  
+  // 백만원 단위로 반올림
+  return Math.round(finalLimit / 1000000) * 1000000;
+}
+
 // 정책자금 추천 (AI 로직)
 export function recommendPolicyFunds(client: ClientData, sohoGrade: string): string[] {
   const funds: string[] = [];
@@ -95,6 +150,7 @@ export function recommendPolicyFunds(client: ClientData, sohoGrade: string): str
 export function performAIDiagnosis(client: ClientData): DiagnosisResult {
   const sohoGrade = calculateSOHOGrade(client);
   const recommendedFunds = recommendPolicyFunds(client, sohoGrade);
+  const maxLoanLimit = calculateMaxLoanLimit(client, sohoGrade);
   
   const niceScore = client.niceScore || client.nice_score || 0;
   const annualRevenue = client.annualRevenue || client.annual_revenue || 0;
@@ -107,12 +163,14 @@ export function performAIDiagnosis(client: ClientData): DiagnosisResult {
   details += `- 연매출액: ${annualRevenue.toLocaleString()}원\n`;
   details += `- 부채: ${debt.toLocaleString()}원\n`;
   details += `- 기술력 보유: ${hasTechnology ? '예' : '아니오'}\n\n`;
+  details += `💰 최대 대출 가능 한도: ${maxLoanLimit.toLocaleString()}원\n\n`;
   details += `추천 정책자금: ${recommendedFunds.length}개\n`;
   details += recommendedFunds.map((f, i) => `${i + 1}. ${f}`).join('\n');
   
   return {
     sohoGrade,
     recommendedFunds,
+    maxLoanLimit,
     details
   };
 }

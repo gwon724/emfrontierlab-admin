@@ -29,6 +29,9 @@ export default function AdminDashboard() {
   const [fundAmounts, setFundAmounts] = useState<{[key: string]: number}>({});
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitData, setLimitData] = useState<any>(null);
+  const [loadingLimit, setLoadingLimit] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -325,6 +328,37 @@ export default function AdminDashboard() {
   const handleCopyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
     alert('링크가 복사되었습니다!');
+  };
+
+  // 최대 한도 조회
+  const handleCalculateLimit = async (clientId: number) => {
+    setLoadingLimit(true);
+    setShowLimitModal(true);
+    setLimitData(null);
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/calculate-limit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setLimitData(data);
+      } else {
+        alert('한도 조회에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error calculating limit:', error);
+      alert('한도 조회 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingLimit(false);
+    }
   };
 
   // 상태 직접 변경 (Notion 스타일)
@@ -1049,15 +1083,29 @@ export default function AdminDashboard() {
             )}
 
             {/* 닫기 버튼 */}
-            <button
-              onClick={() => {
-                setShowClientDetail(false);
-                setSelectedClient(null);
-              }}
-              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
-            >
-              닫기
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleCalculateLimit(selectedClient.id)}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                💰 한도 조회
+              </button>
+              <button
+                onClick={() => router.push(`/admin/document-editor/${selectedClient.id}`)}
+                className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                📝 문서 편집
+              </button>
+              <button
+                onClick={() => {
+                  setShowClientDetail(false);
+                  setSelectedClient(null);
+                }}
+                className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1107,6 +1155,119 @@ export default function AdminDashboard() {
             <button
               onClick={() => setShowShareModal(false)}
               className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 한도 조회 모달 */}
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+              💰 최대 대출 한도 조회
+            </h3>
+            
+            {loadingLimit ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-lg text-gray-600">한도 계산 중...</div>
+              </div>
+            ) : limitData ? (
+              <div>
+                {/* 기본 정보 */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-lg mb-3">기본 정보</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">고객명:</span>
+                      <span className="ml-2 font-medium">{limitData.clientName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">SOHO 등급:</span>
+                      <span className="ml-2 font-bold text-blue-600">{limitData.sohoGrade}등급</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">신용점수(NICE):</span>
+                      <span className="ml-2 font-medium">{limitData.clientInfo.niceScore}점</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">연매출:</span>
+                      <span className="ml-2 font-medium">{limitData.clientInfo.annualRevenue.toLocaleString()}원</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">총부채:</span>
+                      <span className="ml-2 font-medium">{limitData.clientInfo.debt.toLocaleString()}원</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">기술력:</span>
+                      <span className="ml-2 font-medium">{limitData.clientInfo.hasTechnology ? '보유' : '미보유'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 전체 최대 한도 */}
+                <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300">
+                  <h4 className="font-bold text-xl mb-2 text-green-800">전체 최대 대출 가능 한도</h4>
+                  <div className="text-3xl font-bold text-green-600">
+                    {limitData.maxLoanLimit.toLocaleString()}원
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    신용점수, 매출, 부채비율, 기술력을 종합 분석한 결과입니다.
+                  </p>
+                </div>
+
+                {/* 정책자금별 세부 한도 */}
+                <div className="mb-6">
+                  <h4 className="font-semibold text-lg mb-3">정책자금별 세부 한도</h4>
+                  <div className="space-y-3">
+                    {limitData.fundLimits.map((fund: any, index: number) => (
+                      <div key={index} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h5 className="font-semibold text-gray-800">{fund.fundName}</h5>
+                            <p className="text-xs text-gray-500">{fund.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-blue-600">
+                              최대 {fund.maxLimit.toLocaleString()}원
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              금리 {fund.interestRate}% | {fund.repaymentPeriod}개월
+                            </div>
+                          </div>
+                        </div>
+                        {fund.eligibility && (
+                          <p className="text-xs text-gray-600 mt-2">
+                            <span className="font-medium">대상:</span> {fund.eligibility}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {limitData.fundLimits.length === 0 && (
+                  <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <p className="text-yellow-800">
+                      현재 신청 가능한 정책자금이 없습니다. 신용점수 또는 자격 요건을 확인해주세요.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-600">
+                한도 정보를 불러오지 못했습니다.
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setShowLimitModal(false);
+                setLimitData(null);
+              }}
+              className="w-full mt-6 py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
             >
               닫기
             </button>
