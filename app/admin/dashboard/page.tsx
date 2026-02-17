@@ -2192,7 +2192,7 @@ export default function AdminDashboard() {
               {/* 📱 카카오 알림톡 발송 버튼 */}
               <button
                 onClick={() => setShowAlimtalkModal(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-900 rounded-lg font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg font-bold hover:from-gray-800 hover:to-gray-900 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
@@ -2203,7 +2203,7 @@ export default function AdminDashboard() {
               {/* 클라이언트 삭제 버튼 */}
               <button
                 onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}
-                className="w-full py-2 px-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-2 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2788,22 +2788,22 @@ export default function AdminDashboard() {
       {showAlimtalkModal && selectedClient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-gradient-to-r from-gray-700 to-gray-800 p-6 rounded-t-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <svg className="w-8 h-8 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
                   </svg>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">카카오 알림톡 발송</h2>
-                    <p className="text-sm text-gray-800 mt-1">
+                    <h2 className="text-2xl font-bold text-white">카카오 알림톡 발송</h2>
+                    <p className="text-sm text-gray-200 mt-1">
                       수신자: {selectedClient.name} ({selectedClient.phone || '전화번호 없음'})
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAlimtalkModal(false)}
-                  className="text-gray-900 hover:text-gray-700 text-3xl font-bold"
+                  className="text-white hover:text-gray-300 text-3xl font-bold"
                 >
                   ×
                 </button>
@@ -2946,7 +2946,7 @@ export default function AdminDashboard() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAlimtalkModal(false)}
-                  className="flex-1 py-3 px-4 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+                  className="flex-1 py-3 px-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
                 >
                   취소
                 </button>
@@ -2955,8 +2955,8 @@ export default function AdminDashboard() {
                   disabled={sendingAlimtalk || !selectedClient.phone}
                   className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
                     sendingAlimtalk || !selectedClient.phone
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-gray-700 to-gray-800 text-gray-900 hover:from-yellow-500 hover:to-yellow-600'
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-gray-800 to-gray-900 text-white hover:from-gray-900 hover:to-black'
                   }`}
                 >
                   {sendingAlimtalk ? (
