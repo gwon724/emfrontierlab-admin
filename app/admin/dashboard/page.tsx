@@ -47,6 +47,11 @@ export default function AdminDashboard() {
     has_technology: false,
     business_years: ''
   });
+  
+  // AI 진단 관련 state
+  const [showAIDiagnosis, setShowAIDiagnosis] = useState(false);
+  const [aiDiagnosisResult, setAiDiagnosisResult] = useState<any>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -328,6 +333,56 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating fund amounts:', error);
       alert('업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
+  // AI 진단 시작
+  const handleStartAIDiagnosis = async () => {
+    if (!selectedClient) return;
+    
+    setIsLoadingAI(true);
+    setShowAIDiagnosis(true);
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      // 관리자가 클라이언트 데이터로 AI 진단 실행
+      const res = await fetch('/api/client/ai-diagnosis', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientData: {
+            annual_revenue: selectedClient.annual_revenue || 0,
+            total_debt: selectedClient.total_debt || 0,
+            debt_policy_fund: selectedClient.debt_policy_fund || 0,
+            debt_credit_loan: selectedClient.debt_credit_loan || 0,
+            debt_secondary_loan: selectedClient.debt_secondary_loan || 0,
+            debt_card_loan: selectedClient.debt_card_loan || 0,
+            kcb_score: selectedClient.kcb_score || 0,
+            nice_score: selectedClient.nice_score || 0,
+            has_technology: selectedClient.has_technology || false,
+            business_years: selectedClient.business_years || 0
+          }
+        })
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        console.log('🔵 AI 진단 결과:', result);
+        setAiDiagnosisResult(result);
+      } else {
+        alert('AI 진단에 실패했습니다.');
+        setShowAIDiagnosis(false);
+      }
+    } catch (error) {
+      console.error('AI 진단 오류:', error);
+      alert('AI 진단 중 오류가 발생했습니다.');
+      setShowAIDiagnosis(false);
+    } finally {
+      setIsLoadingAI(false);
     }
   };
 
@@ -1165,29 +1220,39 @@ export default function AdminDashboard() {
                   <h4 className="text-lg font-semibold text-gray-800">
                     💰 자금 금액 설정
                   </h4>
-                  {!editingFundAmounts ? (
+                  <div className="flex gap-2">
+                    {/* AI 진단 버튼 */}
                     <button
-                      onClick={handleStartEditFundAmounts}
-                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      onClick={handleStartAIDiagnosis}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
                     >
-                      💵 금액 입력
+                      🤖 AI 진단
                     </button>
-                  ) : (
-                    <div className="flex gap-2">
+                    
+                    {!editingFundAmounts ? (
                       <button
-                        onClick={handleCancelEditFundAmounts}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={handleSaveFundAmounts}
+                        onClick={handleStartEditFundAmounts}
                         className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
                       >
-                        저장
+                        💵 금액 입력
                       </button>
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleCancelEditFundAmounts}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                        >
+                          취소
+                        </button>
+                        <button
+                          onClick={handleSaveFundAmounts}
+                          className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        >
+                          저장
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {!editingFundAmounts ? (
@@ -1375,6 +1440,140 @@ export default function AdminDashboard() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI 진단 결과 모달 */}
+      {showAIDiagnosis && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                🤖 AI 정책자금 진단 결과
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAIDiagnosis(false);
+                  setAiDiagnosisResult(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {isLoadingAI ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
+                <p className="text-gray-600 text-lg">AI가 최적의 정책자금을 분석 중입니다...</p>
+              </div>
+            ) : aiDiagnosisResult ? (
+              <div className="space-y-6">
+                {/* SOHO 등급 */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border-2 border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">SOHO 신용등급</p>
+                      <p className="text-4xl font-bold text-purple-600">{aiDiagnosisResult.soho_grade || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600 mb-1">최대 대출 한도</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {(aiDiagnosisResult.max_loan_limit || 0).toLocaleString()}원
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 추천 정책자금 */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="text-2xl mr-2">💼</span>
+                    추천 정책자금 ({aiDiagnosisResult.recommended_funds?.length || 0}개)
+                  </h4>
+                  
+                  {aiDiagnosisResult.recommended_funds && aiDiagnosisResult.recommended_funds.length > 0 ? (
+                    <div className="grid gap-3">
+                      {aiDiagnosisResult.recommended_funds.map((fund: any, index: number) => {
+                        const isAlreadySelected = selectedClient?.policy_funds?.includes(fund.name);
+                        
+                        return (
+                          <div 
+                            key={index}
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              isAlreadySelected 
+                                ? 'bg-green-50 border-green-300' 
+                                : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">
+                                    {fund.category === '중진공' ? '🏢' : 
+                                     fund.category === '소진공' ? '🏪' : 
+                                     fund.category === '신용보증' ? '🛡️' : 
+                                     fund.category === '기술보증' ? '🔬' : '💼'}
+                                  </span>
+                                  <h5 className="font-semibold text-gray-800">{fund.name}</h5>
+                                  {isAlreadySelected && (
+                                    <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium">
+                                      ✓ 신청 중
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {fund.category && (
+                                  <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium mb-2">
+                                    {fund.category}
+                                  </span>
+                                )}
+                                
+                                <div className="space-y-1 text-sm text-gray-600">
+                                  <p><strong>한도:</strong> {fund.max_amount?.toLocaleString() || 'N/A'}원</p>
+                                  <p><strong>금리:</strong> {fund.interest_rate || 'N/A'}</p>
+                                  {fund.requirements && (
+                                    <p><strong>요건:</strong> {fund.requirements}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-8">추천 가능한 정책자금이 없습니다.</p>
+                  )}
+                </div>
+
+                {/* 진단 상세 내역 */}
+                {aiDiagnosisResult.diagnosis_details && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 mb-2">📋 진단 상세 내역</h4>
+                    <pre className="text-sm text-gray-600 whitespace-pre-wrap font-mono">
+                      {aiDiagnosisResult.diagnosis_details}
+                    </pre>
+                  </div>
+                )}
+
+                {/* 닫기 버튼 */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setShowAIDiagnosis(false);
+                      setAiDiagnosisResult(null);
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium shadow-md"
+                  >
+                    확인
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
