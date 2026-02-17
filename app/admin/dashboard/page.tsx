@@ -180,9 +180,11 @@ export default function AdminDashboard() {
 
   const processQRData = async (qrData: string) => {
     try {
+      const token = localStorage.getItem('adminToken');
       const res = await fetch('/api/qr/scan', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -196,6 +198,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         alert('QR 스캔 성공!');
         setSelectedClient(data.client);
+        setShowClientDetail(true);
         setShowQRScanner(false);
         setScannedData(null);
       } else {
