@@ -25,6 +25,10 @@ export default function AdminDashboard() {
   const [editingFunds, setEditingFunds] = useState(false);
   const [editedFunds, setEditedFunds] = useState<string[]>([]);
   const [newFundInput, setNewFundInput] = useState('');
+  const [editingFundAmounts, setEditingFundAmounts] = useState(false);
+  const [fundAmounts, setFundAmounts] = useState<{[key: string]: number}>({});
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareLink, setShareLink] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -252,6 +256,75 @@ export default function AdminDashboard() {
       console.error('Error updating policy funds:', error);
       alert('업데이트 중 오류가 발생했습니다.');
     }
+  };
+
+  // 자금 금액 편집 시작
+  const handleStartEditFundAmounts = () => {
+    setFundAmounts(selectedClient.fund_amounts || {});
+    setEditingFundAmounts(true);
+  };
+
+  // 자금 금액 편집 취소
+  const handleCancelEditFundAmounts = () => {
+    setEditingFundAmounts(false);
+    setFundAmounts({});
+  };
+
+  // 자금 금액 변경
+  const handleFundAmountChange = (fundName: string, amount: string) => {
+    const numAmount = parseInt(amount.replace(/,/g, '')) || 0;
+    setFundAmounts({
+      ...fundAmounts,
+      [fundName]: numAmount
+    });
+  };
+
+  // 자금 금액 저장
+  const handleSaveFundAmounts = async () => {
+    const token = localStorage.getItem('adminToken');
+    
+    try {
+      const res = await fetch('/api/admin/update-fund-amounts', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          fundAmounts: fundAmounts
+        })
+      });
+
+      if (res.ok) {
+        alert('자금 금액이 업데이트되었습니다.');
+        setEditingFundAmounts(false);
+        fetchData();
+        setSelectedClient({
+          ...selectedClient,
+          fund_amounts: fundAmounts
+        });
+      } else {
+        alert('업데이트에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating fund amounts:', error);
+      alert('업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 공유 링크 생성
+  const handleGenerateShareLink = () => {
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/api/share/client-info?clientId=${selectedClient.id}`;
+    setShareLink(link);
+    setShowShareModal(true);
+  };
+
+  // 클립보드에 복사
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    alert('링크가 복사되었습니다!');
   };
 
   // 상태 직접 변경 (Notion 스타일)
@@ -847,6 +920,108 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* 자금 금액 설정 */}
+            {selectedClient.policy_funds && selectedClient.policy_funds.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    💰 자금 금액 설정
+                  </h4>
+                  {!editingFundAmounts ? (
+                    <button
+                      onClick={handleStartEditFundAmounts}
+                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      💵 금액 입력
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCancelEditFundAmounts}
+                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleSaveFundAmounts}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
+                        저장
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {!editingFundAmounts ? (
+                  <div className="space-y-2">
+                    {selectedClient.policy_funds.map((fund: string, idx: number) => {
+                      const amount = selectedClient.fund_amounts?.[fund] || 0;
+                      return (
+                        <div key={idx} className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-gray-800">{fund}</span>
+                            <span className="text-xl font-bold text-green-700">
+                              {amount > 0 ? `${amount.toLocaleString()}원` : '미설정'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-800">총 금액</span>
+                        <span className="text-2xl font-bold text-yellow-700">
+                          {Object.values(selectedClient.fund_amounts || {})
+                            .reduce((sum: number, val: any) => sum + (val || 0), 0)
+                            .toLocaleString()}원
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedClient.policy_funds.map((fund: string, idx: number) => (
+                      <div key={idx} className="p-4 bg-gray-50 border border-gray-300 rounded-lg">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {fund}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={(fundAmounts[fund] || 0).toLocaleString()}
+                            onChange={(e) => handleFundAmountChange(fund, e.target.value)}
+                            placeholder="금액 입력 (원)"
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-right"
+                          />
+                          <span className="text-gray-600 font-medium">원</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-800">총 금액</span>
+                        <span className="text-2xl font-bold text-blue-700">
+                          {Object.values(fundAmounts)
+                            .reduce((sum: number, val: any) => sum + (val || 0), 0)
+                            .toLocaleString()}원
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 클라이언트 공유 링크 */}
+            <div className="mb-6">
+              <button
+                onClick={handleGenerateShareLink}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
+              >
+                🔗 클라이언트에게 공유할 링크 생성
+              </button>
+            </div>
+
             {/* 진행 상태 */}
             {selectedClient.application_status && (
               <div className="mb-6">
@@ -879,6 +1054,58 @@ export default function AdminDashboard() {
                 setShowClientDetail(false);
                 setSelectedClient(null);
               }}
+              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 공유 링크 모달 */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-2xl w-full">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+              🔗 클라이언트 정보 공유 링크
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              이 링크를 클라이언트에게 전송하면 진행 상황과 자금 정보를 확인할 수 있습니다.
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                공유 링크
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={shareLink}
+                  readOnly
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold whitespace-nowrap"
+                >
+                  📋 복사
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+              <h4 className="font-semibold text-blue-900 mb-2">📊 공유 내용</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• 이름 및 이메일</li>
+                <li>• SOHO 등급</li>
+                <li>• 진행 중인 정책자금 목록</li>
+                <li>• 각 자금별 금액</li>
+                <li>• 신청 상태</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setShowShareModal(false)}
               className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
             >
               닫기
