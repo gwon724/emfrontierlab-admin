@@ -2181,7 +2181,7 @@ export default function AdminDashboard() {
               {/* 📊 AI 분석 보고서 버튼 */}
               <button
                 onClick={handleGenerateReport}
-                className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-bold hover:from-gray-900 hover:to-black transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
