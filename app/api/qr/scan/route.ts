@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 발급처 검증 (관리자 사이트에서 생성된 QR만 허용)
-    if (data.issuer !== 'EMFRONTIER_ADMIN') {
+    // 발급처 검증 (EMFRONTIER에서 생성된 QR 허용)
+    if (!data.issuer || !data.issuer.includes('EMFRONTIER')) {
       return NextResponse.json(
-        { error: '관리자 사이트에서 생성된 QR 코드만 스캔 가능합니다.' },
+        { error: 'EMFRONTIER에서 생성된 QR 코드만 스캔 가능합니다.' },
         { status: 403 }
       );
     }
@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // QR 타입 검증 (관리자 전용)
-    if (qrPayload.type !== 'admin-qr') {
+    // QR 타입 검증 (admin-qr 또는 client-qr 허용)
+    if (qrPayload.type !== 'admin-qr' && qrPayload.type !== 'client-qr') {
       return NextResponse.json(
-        { error: '관리자 전용 QR 코드만 스캔 가능합니다.' },
+        { error: '유효하지 않은 QR 코드 타입입니다.' },
         { status: 403 }
       );
     }
