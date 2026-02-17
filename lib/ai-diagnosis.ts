@@ -54,7 +54,7 @@ const POLICY_FUNDS_DETAILS: { [key: string]: Omit<PolicyFund, 'name'> } = {
     category: '중진공',
     max_amount: 100000000,
     interest_rate: '2.5%',
-    requirements: '사업 연차 7년 이하'
+    requirements: '개업일 3년 이내'
   },
   '중진공 혁신창업사업화자금': {
     category: '중진공',
@@ -239,8 +239,8 @@ export function recommendPolicyFunds(client: ClientData, sohoGrade: string): Pol
     fundNames.push('소진공 취약소상공인자금');
   }
   
-  // 2. 청년창업 지원금 (업력 7년 이하)
-  if (businessYears <= 7) {
+  // 2. 청년창업 지원금 (개업일 3년 이내)
+  if (businessYears <= 3) {
     fundNames.push('중진공 청년창업 지원금');
   }
   
