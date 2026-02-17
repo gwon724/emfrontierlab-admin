@@ -13,17 +13,11 @@ export async function GET(request: NextRequest) {
     initDatabase();
     const db = getDatabase();
 
-    // 클라이언트 및 신청 정보 조회
+    // 클라이언트 정보 조회
     const client: any = db.prepare(`
       SELECT 
-        c.name,
-        c.email,
-        c.soho_grade,
-        a.status as application_status,
-        a.policy_funds,
-        a.fund_amounts
+        c.*
       FROM clients c
-      LEFT JOIN applications a ON c.id = a.client_id
       WHERE c.id = ?
     `).get(clientId);
 
@@ -31,19 +25,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '클라이언트를 찾을 수 없습니다.' }, { status: 404 });
     }
 
+    // 최신 신청 정보 조회
+    const application: any = db.prepare(`
+      SELECT * FROM applications
+      WHERE client_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(clientId);
+
+    // AI 진단 정보 조회
+    const diagnosis: any = db.prepare(`
+      SELECT * FROM ai_diagnosis
+      WHERE client_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(clientId);
+
     // policy_funds와 fund_amounts JSON 파싱
-    const policyFunds = client.policy_funds ? JSON.parse(client.policy_funds) : [];
-    const fundAmounts = client.fund_amounts ? JSON.parse(client.fund_amounts) : {};
+    let policyFunds = [];
+    let fundAmounts = {};
+    
+    if (application) {
+      policyFunds = application.policy_funds ? JSON.parse(application.policy_funds) : [];
+      fundAmounts = application.fund_amounts ? JSON.parse(application.fund_amounts) : {};
+    }
+
+    // AI 진단 정보 파싱
+    let recommendedFunds = [];
+    if (diagnosis && diagnosis.recommended_funds) {
+      try {
+        recommendedFunds = JSON.parse(diagnosis.recommended_funds);
+      } catch (e) {
+        recommendedFunds = [];
+      }
+    }
 
     return NextResponse.json({
       success: true,
       client: {
+        id: client.id,
         name: client.name,
         email: client.email,
-        soho_grade: client.soho_grade,
-        application_status: client.application_status || '접수대기',
+        age: client.age,
+        gender: client.gender,
+        annual_revenue: client.annual_revenue,
+        debt: client.debt,
+        debt_policy_fund: client.debt_policy_fund || 0,
+        debt_credit_loan: client.debt_credit_loan || 0,
+        debt_secondary_loan: client.debt_secondary_loan || 0,
+        debt_card_loan: client.debt_card_loan || 0,
+        kcb_score: client.kcb_score,
+        nice_score: client.nice_score,
+        has_technology: client.has_technology,
+        soho_grade: client.soho_grade || diagnosis?.soho_grade || 'N/A',
+        application_status: application?.status || '미신청',
         policy_funds: policyFunds,
-        fund_amounts: fundAmounts
+        fund_amounts: fundAmounts,
+        recommended_funds: recommendedFunds,
+        notes: application?.notes || '',
+        created_at: client.created_at
       }
     });
 
