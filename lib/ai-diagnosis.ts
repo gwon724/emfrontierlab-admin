@@ -12,6 +12,8 @@ export interface ClientData {
   age?: number;
   gender?: string;
   kcb_score?: number;
+  businessYears?: number;
+  business_years?: number;
 }
 
 export interface DiagnosisResult {
@@ -117,30 +119,70 @@ export function calculateMaxLoanLimit(client: ClientData, sohoGrade: string): nu
   return Math.round(finalLimit / 1000000) * 1000000;
 }
 
-// 정책자금 추천 (AI 로직)
+// 정책자금 추천 (AI 로직 - 업력 기반 필터링)
 export function recommendPolicyFunds(client: ClientData, sohoGrade: string): string[] {
   const funds: string[] = [];
   
   const niceScore = client.niceScore || client.nice_score || 0;
   const hasTechnology = client.hasTechnology ?? client.has_technology ?? false;
+  const businessYears = client.businessYears ?? client.business_years ?? 0;
   
-  // 1. 소상공인진흥공단 - 취약소상공인상품 (NICE 859점 이하)
-  if (niceScore <= 859) {
-    funds.push('소상공인진흥공단 - 취약소상공인상품');
+  // 1. 소상공인진흥공단 - 취약소상공인상품 (NICE 839점 이하)
+  if (niceScore <= 839) {
+    funds.push('소진공 취약소상공인자금');
   }
   
-  // 2. 중소벤처진흥공단
-  funds.push('중소벤처진흥공단');
+  // 2. 청년창업 지원금 (업력 7년 이하)
+  if (businessYears <= 7) {
+    funds.push('중진공 청년창업 지원금');
+  }
   
-  // 3. 신용보증재단
-  funds.push('신용보증재단');
+  // 3. 혁신창업사업화자금 (업력 7년 이하, 기술력 보유)
+  if (businessYears <= 7 && hasTechnology) {
+    funds.push('중진공 혁신창업사업화자금');
+  }
   
-  // 4. 신용보증기금
-  funds.push('신용보증기금');
+  // 4. 신시장진출지원자금 (업력 무관)
+  funds.push('중진공 신시장진출지원자금');
   
-  // 5. 기술보증기금 (기술력 보유시에만)
+  // 5. 재도약지원자금 (업력 3년 이상, 신용점수 700 이상)
+  if (businessYears >= 3 && niceScore >= 700) {
+    funds.push('중진공 재도약지원자금');
+  }
+  
+  // 6. 제조현장스마트화자금 (업력 2년 이상, 기술력 보유)
+  if (businessYears >= 2 && hasTechnology) {
+    funds.push('중진공 제조현장스마트화자금');
+  }
+  
+  // 7. 일반경영안정자금 (업력 1년 이상)
+  if (businessYears >= 1) {
+    funds.push('소진공 일반경영안정자금');
+  }
+  
+  // 8. 성장촉진자금 (업력 3년 이상)
+  if (businessYears >= 3) {
+    funds.push('소진공 성장촉진자금');
+  }
+  
+  // 9. 청년고용연계자금 (업력 1년 이상)
+  if (businessYears >= 1) {
+    funds.push('소진공 청년고용연계자금');
+  }
+  
+  // 10. 재해소상공인지원자금 (업력 무관, 재해 시)
+  funds.push('소진공 재해소상공인지원자금');
+  
+  // 11. 신용보증기금 (업력 무관, 신용점수 700 이상)
+  if (niceScore >= 700) {
+    funds.push('신용보증기금 신용보증서 (반보증)');
+    funds.push('신용보증기금 유망창업기업보증');
+  }
+  
+  // 12. 기술보증기금 (기술력 보유)
   if (hasTechnology) {
-    funds.push('기술보증기금');
+    funds.push('기술보증기금 기술보증서');
+    funds.push('기술보증기금 벤처기업특례보증');
   }
   
   return funds;
