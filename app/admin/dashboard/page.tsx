@@ -42,6 +42,7 @@ export default function AdminDashboard() {
     email: '',
     password: '',
     name: '',
+    phone: '',
     age: '',
     gender: '남성',
     annual_revenue: '',
@@ -87,6 +88,10 @@ export default function AdminDashboard() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+
+  // 전화번호 수정 관련 state
+  const [editingClientPhone, setEditingClientPhone] = useState(false);
+  const [newClientPhone, setNewClientPhone] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -787,6 +792,53 @@ export default function AdminDashboard() {
     }
   };
 
+  // 클라이언트 전화번호 수정
+  const handleUpdateClientPhone = async () => {
+    if (!selectedClient) {
+      alert('클라이언트를 선택해주세요.');
+      return;
+    }
+
+    const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
+    if (!newClientPhone || !phoneRegex.test(newClientPhone.replace(/-/g, ''))) {
+      alert('올바른 전화번호 형식으로 입력해주세요. (예: 010-1234-5678)');
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/update-client-phone', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientId: selectedClient.id,
+          phone: newClientPhone 
+        })
+      });
+
+      if (res.ok) {
+        alert('전화번호가 변경되었습니다.');
+        setEditingClientPhone(false);
+        setNewClientPhone('');
+        fetchData(); // 데이터 새로고침
+        // selectedClient 업데이트
+        setSelectedClient({
+          ...selectedClient,
+          phone: newClientPhone
+        });
+      } else {
+        const data = await res.json();
+        alert(data.error || '전화번호 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating phone:', error);
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+  };
+
   // 알림톡 발송
   const handleSendAlimtalk = async () => {
     if (!selectedClient) {
@@ -1360,6 +1412,48 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-sm font-medium text-gray-600">이메일</label>
                   <p className="text-base font-semibold text-gray-900">{selectedClient.email}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">전화번호</label>
+                  {editingClientPhone ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={newClientPhone}
+                        onChange={(e) => setNewClientPhone(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                        placeholder="010-1234-5678"
+                      />
+                      <button
+                        onClick={handleUpdateClientPhone}
+                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingClientPhone(false);
+                          setNewClientPhone('');
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold text-gray-900">{selectedClient.phone || '미등록'}</p>
+                      <button
+                        onClick={() => {
+                          setEditingClientPhone(true);
+                          setNewClientPhone(selectedClient.phone || '');
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                      >
+                        수정
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">나이</label>
@@ -2326,6 +2420,18 @@ export default function AdminDashboard() {
                       value={newClientData.name}
                       onChange={(e) => setNewClientData({...newClientData, name: e.target.value})}
                       placeholder="홍길동"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      전화번호 (선택)
+                    </label>
+                    <input
+                      type="tel"
+                      value={newClientData.phone}
+                      onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})}
+                      placeholder="010-1234-5678"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                     />
                   </div>

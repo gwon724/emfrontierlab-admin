@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       name,
+      phone,
       age,
       gender,
       annual_revenue,
@@ -40,6 +41,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: '필수 정보가 누락되었습니다. (이메일, 비밀번호, 이름, 나이, 성별, 연매출, 총부채)' 
       }, { status: 400 });
+    }
+
+    // 전화번호 유효성 검사 (선택사항이지만, 있으면 검증)
+    if (phone) {
+      const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
+      if (!phoneRegex.test(phone.replace(/-/g, ''))) {
+        return NextResponse.json(
+          { error: '올바른 전화번호 형식이 아닙니다.' },
+          { status: 400 }
+        );
+      }
     }
 
     // 이메일 형식 검증
@@ -75,7 +87,8 @@ export async function POST(request: NextRequest) {
       INSERT INTO clients (
         email, 
         password, 
-        name, 
+        name,
+        phone,
         age, 
         gender, 
         annual_revenue, 
@@ -91,11 +104,12 @@ export async function POST(request: NextRequest) {
         agree_credit_check,
         agree_privacy,
         agree_confidentiality
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
     `).run(
       email,
       hashedPassword,
       name,
+      phone || null,
       parseInt(age) || 0,
       gender,
       parseInt(annual_revenue) || 0,
