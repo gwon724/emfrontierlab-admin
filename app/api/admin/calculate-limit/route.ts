@@ -93,24 +93,24 @@ async function calculateFundSpecificLimits(client: any, sohoGrade: string, maxLi
   const funds: any[] = db.prepare('SELECT * FROM policy_fund_details').all();
   
   const fundLimits = funds.map(fund => {
-    let adjustedLimit = Math.min(maxLimit, fund.max_limit * 100000000); // DB에 억 단위로 저장됨
+    let adjustedLimit = Math.min(maxLimit, fund.max_amount); // DB에 원 단위로 저장됨
     
     // 자금별 추가 조건 적용
-    if (fund.name.includes('청년')) {
+    if (fund.fund_name.includes('청년')) {
       // 청년 자금은 나이 제한
       if (client.age > 39) {
         adjustedLimit = 0;
       }
     }
     
-    if (fund.name.includes('기술') || fund.name.includes('벤처')) {
+    if (fund.fund_name.includes('기술') || fund.fund_name.includes('벤처')) {
       // 기술 관련 자금은 기술력 필수
       if (!client.has_technology) {
         adjustedLimit = adjustedLimit * 0.5; // 50% 감액
       }
     }
     
-    if (fund.name.includes('취약')) {
+    if (fund.fund_name.includes('취약')) {
       // 취약소상공인 자금은 신용점수 제한
       if (client.nice_score > 839) {
         adjustedLimit = 0;
@@ -118,11 +118,11 @@ async function calculateFundSpecificLimits(client: any, sohoGrade: string, maxLi
     }
     
     return {
-      fundName: fund.name,
+      fundName: fund.fund_name,
       category: fund.category,
       maxLimit: adjustedLimit,
       interestRate: fund.interest_rate,
-      repaymentPeriod: fund.repayment_period,
+      repaymentPeriod: fund.period_months,
       eligibility: fund.eligibility,
       isEligible: adjustedLimit > 0
     };
