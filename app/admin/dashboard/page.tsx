@@ -32,6 +32,14 @@ export default function AdminDashboard() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitData, setLimitData] = useState<any>(null);
   const [loadingLimit, setLoadingLimit] = useState(false);
+  const [editingDebt, setEditingDebt] = useState(false);
+  const [debtData, setDebtData] = useState({
+    debt: 0,
+    debt_policy_fund: 0,
+    debt_credit_loan: 0,
+    debt_secondary_loan: 0,
+    debt_card_loan: 0
+  });
 
   useEffect(() => {
     fetchData();
@@ -358,6 +366,58 @@ export default function AdminDashboard() {
       alert('한도 조회 중 오류가 발생했습니다.');
     } finally {
       setLoadingLimit(false);
+    }
+  };
+
+  // 부채 정보 수정 시작
+  const handleStartEditDebt = () => {
+    setDebtData({
+      debt: selectedClient.debt || 0,
+      debt_policy_fund: selectedClient.debt_policy_fund || 0,
+      debt_credit_loan: selectedClient.debt_credit_loan || 0,
+      debt_secondary_loan: selectedClient.debt_secondary_loan || 0,
+      debt_card_loan: selectedClient.debt_card_loan || 0
+    });
+    setEditingDebt(true);
+  };
+
+  // 부채 정보 수정 취소
+  const handleCancelEditDebt = () => {
+    setEditingDebt(false);
+  };
+
+  // 부채 정보 저장
+  const handleSaveDebt = async () => {
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/update-debt', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          ...debtData
+        })
+      });
+
+      if (res.ok) {
+        alert('부채 정보가 업데이트되었습니다.');
+        setEditingDebt(false);
+        fetchData();
+        
+        // 선택된 클라이언트 정보도 업데이트
+        setSelectedClient({
+          ...selectedClient,
+          ...debtData
+        });
+      } else {
+        alert('업데이트에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating debt:', error);
+      alert('업데이트 중 오류가 발생했습니다.');
     }
   };
 
@@ -809,44 +869,149 @@ export default function AdminDashboard() {
 
             {/* 재무 정보 */}
             <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
-                💰 재무 정보
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">연매출</label>
-                  <p className="text-base font-semibold text-gray-900">
-                    {selectedClient.annual_revenue?.toLocaleString()}원
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">총 부채</label>
-                  <p className="text-base font-semibold text-gray-900">
-                    {selectedClient.debt?.toLocaleString()}원
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-600">기술력 보유</label>
-                  <p className="text-base font-semibold text-gray-900">
-                    {selectedClient.has_technology ? '✅ 예' : '❌ 아니오'}
-                  </p>
-                </div>
+              <div className="flex justify-between items-center mb-3 pb-2 border-b">
+                <h4 className="text-lg font-semibold text-gray-800">
+                  💰 재무 정보
+                </h4>
+                {!editingDebt ? (
+                  <button
+                    onClick={handleStartEditDebt}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    ✏️ 부채 수정
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCancelEditDebt}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-400 transition-colors"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSaveDebt}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      저장
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* 부채 세부 내역 */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">기대출 내역</h5>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
-                    <span className="text-xs text-gray-600">정책자금</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {(selectedClient.debt_policy_fund || 0).toLocaleString()}원
-                    </span>
+              {!editingDebt ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">연매출</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {selectedClient.annual_revenue?.toLocaleString()}원
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
-                    <span className="text-xs text-gray-600">신용대출</span>
-                    <span className="text-sm font-medium text-gray-900">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">총 부채</label>
+                    <p className="text-base font-semibold text-red-600">
+                      {selectedClient.debt?.toLocaleString()}원
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">정책자금 대출</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {(selectedClient.debt_policy_fund || 0).toLocaleString()}원
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">신용대출</label>
+                    <p className="text-base font-semibold text-gray-900">
                       {(selectedClient.debt_credit_loan || 0).toLocaleString()}원
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">2금융권 대출</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {(selectedClient.debt_secondary_loan || 0).toLocaleString()}원
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">카드론</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {(selectedClient.debt_card_loan || 0).toLocaleString()}원
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-600">기술력 보유</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {selectedClient.has_technology ? '보유' : '미보유'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">연매출 (수정 불가)</label>
+                    <input
+                      type="text"
+                      value={selectedClient.annual_revenue?.toLocaleString()}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">총 부채 *</label>
+                    <input
+                      type="number"
+                      value={debtData.debt}
+                      onChange={(e) => setDebtData({...debtData, debt: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="총 부채 금액"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      현재: {debtData.debt.toLocaleString()}원
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">정책자금 대출</label>
+                      <input
+                        type="number"
+                        value={debtData.debt_policy_fund}
+                        onChange={(e) => setDebtData({...debtData, debt_policy_fund: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">신용대출</label>
+                      <input
+                        type="number"
+                        value={debtData.debt_credit_loan}
+                        onChange={(e) => setDebtData({...debtData, debt_credit_loan: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">2금융권 대출</label>
+                      <input
+                        type="number"
+                        value={debtData.debt_secondary_loan}
+                        onChange={(e) => setDebtData({...debtData, debt_secondary_loan: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">카드론</label>
+                      <input
+                        type="number"
+                        value={debtData.debt_card_loan}
+                        onChange={(e) => setDebtData({...debtData, debt_card_loan: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      💡 <strong>참고:</strong> 총 부채는 필수 항목이며, 세부 대출 내역은 선택사항입니다.
+                    </p>
+                  </div>
+                </div>
+              )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
