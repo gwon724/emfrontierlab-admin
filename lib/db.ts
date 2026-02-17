@@ -25,6 +25,7 @@ export function initDatabase() {
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
+      phone TEXT,
       age INTEGER NOT NULL,
       gender TEXT NOT NULL,
       annual_revenue INTEGER NOT NULL,
@@ -43,6 +44,13 @@ export function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // 기존 테이블에 phone 컬럼 추가 (마이그레이션)
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN phone TEXT`);
+  } catch (e) {
+    // 컬럼이 이미 존재하면 무시
+  }
 
   // 어드민 사용자 테이블
   database.exec(`

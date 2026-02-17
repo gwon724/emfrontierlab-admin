@@ -70,6 +70,18 @@ export default function AdminDashboard() {
   const [clientFiles, setClientFiles] = useState<any[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 알림톡 발송 관련 state
+  const [showAlimtalkModal, setShowAlimtalkModal] = useState(false);
+  const [sendingAlimtalk, setSendingAlimtalk] = useState(false);
+  const [alimtalkType, setAlimtalkType] = useState('application_received');
+  const [alimtalkParams, setAlimtalkParams] = useState({
+    amount: '',
+    approvedAmount: '',
+    supplementContent: '',
+    deadline: '',
+    rejectionReason: ''
+  });
 
   useEffect(() => {
     fetchData();
@@ -740,6 +752,78 @@ export default function AdminDashboard() {
       alert('삭제 중 오류가 발생했습니다.');
     }
   };
+
+  // 알림톡 발송
+  const handleSendAlimtalk = async () => {
+    if (!selectedClient) {
+      alert('클라이언트를 선택해주세요.');
+      return;
+    }
+
+    if (!selectedClient.phone) {
+      alert('해당 클라이언트의 전화번호가 등록되지 않았습니다.\n전화번호를 먼저 등록해주세요.');
+      return;
+    }
+
+    // 필수 파라미터 검증
+    if (alimtalkType === 'application_received' && !alimtalkParams.amount) {
+      alert('신청금액을 입력해주세요.');
+      return;
+    }
+    if (alimtalkType === 'approved' && !alimtalkParams.approvedAmount) {
+      alert('승인금액을 입력해주세요.');
+      return;
+    }
+    if (alimtalkType === 'supplement' && (!alimtalkParams.supplementContent || !alimtalkParams.deadline)) {
+      alert('보완 내용과 제출 기한을 입력해주세요.');
+      return;
+    }
+    if (alimtalkType === 'rejected' && !alimtalkParams.rejectionReason) {
+      alert('반려 사유를 입력해주세요.');
+      return;
+    }
+
+    setSendingAlimtalk(true);
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/send-alimtalk', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          messageType: alimtalkType,
+          customParams: alimtalkParams
+        })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert(`✅ ${result.message}\n\n수신자: ${selectedClient.name} (${selectedClient.phone})`);
+        setShowAlimtalkModal(false);
+        // 파라미터 초기화
+        setAlimtalkParams({
+          amount: '',
+          approvedAmount: '',
+          supplementContent: '',
+          deadline: '',
+          rejectionReason: ''
+        });
+      } else {
+        alert(`❌ ${result.message || result.error || '알림톡 전송에 실패했습니다.'}`);
+      }
+    } catch (error) {
+      console.error('Error sending alimtalk:', error);
+      alert('알림톡 전송 중 오류가 발생했습니다.');
+    } finally {
+      setSendingAlimtalk(false);
+    }
+  };
+
 
   // 클라이언트 추가
   const handleAddClient = async () => {
@@ -1753,6 +1837,17 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
+              {/* 📱 카카오 알림톡 발송 버튼 */}
+              <button
+                onClick={() => setShowAlimtalkModal(true)}
+                className="w-full py-3 px-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg font-bold hover:from-yellow-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
+                </svg>
+                📱 카카오 알림톡 발송
+              </button>
+
               {/* 클라이언트 삭제 버튼 */}
               <button
                 onClick={() => handleDeleteClient(selectedClient.id, selectedClient.name)}
@@ -2320,6 +2415,204 @@ export default function AdminDashboard() {
               >
                 등록하기
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 카카오 알림톡 발송 모달 */}
+      {showAlimtalkModal && selectedClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-yellow-400 to-yellow-500 p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <svg className="w-8 h-8 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 5.58 2 10c0 2.5 1.37 4.77 3.5 6.36V22l5.5-3.29c.98.19 2.03.29 3 .29 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/>
+                  </svg>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">카카오 알림톡 발송</h2>
+                    <p className="text-sm text-gray-800 mt-1">
+                      수신자: {selectedClient.name} ({selectedClient.phone || '전화번호 없음'})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAlimtalkModal(false)}
+                  className="text-gray-900 hover:text-gray-700 text-3xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* 전화번호 없음 경고 */}
+              {!selectedClient.phone && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-red-700 font-semibold">
+                      전화번호가 등록되지 않았습니다. 알림톡을 발송할 수 없습니다.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 메시지 타입 선택 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  알림 유형 선택 *
+                </label>
+                <select
+                  value={alimtalkType}
+                  onChange={(e) => setAlimtalkType(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none text-lg"
+                  disabled={!selectedClient.phone}
+                >
+                  <option value="application_received">📋 신청 접수 알림</option>
+                  <option value="in_progress">⏳ 심사 진행 알림</option>
+                  <option value="approved">✅ 승인 완료 알림</option>
+                  <option value="supplement">📄 서류 보완 요청</option>
+                  <option value="rejected">❌ 반려 알림</option>
+                </select>
+              </div>
+
+              {/* 동적 파라미터 입력 */}
+              {alimtalkType === 'application_received' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    신청금액 *
+                  </label>
+                  <input
+                    type="text"
+                    value={alimtalkParams.amount}
+                    onChange={(e) => setAlimtalkParams({...alimtalkParams, amount: e.target.value})}
+                    placeholder="예: 5,000만원"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none"
+                    disabled={!selectedClient.phone}
+                  />
+                </div>
+              )}
+
+              {alimtalkType === 'approved' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    승인금액 *
+                  </label>
+                  <input
+                    type="text"
+                    value={alimtalkParams.approvedAmount}
+                    onChange={(e) => setAlimtalkParams({...alimtalkParams, approvedAmount: e.target.value})}
+                    placeholder="예: 5,000만원"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none"
+                    disabled={!selectedClient.phone}
+                  />
+                </div>
+              )}
+
+              {alimtalkType === 'supplement' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      보완 내용 *
+                    </label>
+                    <textarea
+                      value={alimtalkParams.supplementContent}
+                      onChange={(e) => setAlimtalkParams({...alimtalkParams, supplementContent: e.target.value})}
+                      placeholder="예: 사업자등록증 사본, 최근 3개월 매출 증빙서류"
+                      rows={3}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none resize-none"
+                      disabled={!selectedClient.phone}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      제출 기한 *
+                    </label>
+                    <input
+                      type="text"
+                      value={alimtalkParams.deadline}
+                      onChange={(e) => setAlimtalkParams({...alimtalkParams, deadline: e.target.value})}
+                      placeholder="예: 2026-02-25까지"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none"
+                      disabled={!selectedClient.phone}
+                    />
+                  </div>
+                </>
+              )}
+
+              {alimtalkType === 'rejected' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    반려 사유 *
+                  </label>
+                  <textarea
+                    value={alimtalkParams.rejectionReason}
+                    onChange={(e) => setAlimtalkParams({...alimtalkParams, rejectionReason: e.target.value})}
+                    placeholder="예: 신용점수 미달 (최소 700점 이상 필요)"
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none resize-none"
+                    disabled={!selectedClient.phone}
+                  />
+                </div>
+              )}
+
+              {/* 안내 메시지 */}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div className="text-sm text-blue-700">
+                    <p className="font-semibold mb-1">💡 알림톡 발송 안내</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>친구 추가 없이 전화번호만으로 발송 가능</li>
+                      <li>발송 전 카카오 비즈니스 인증 및 템플릿 승인 필요</li>
+                      <li>현재 테스트 모드: 실제 발송되지 않음</li>
+                      <li>실제 운영 시 .env에 API 키 설정 필요</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAlimtalkModal(false)}
+                  className="flex-1 py-3 px-4 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSendAlimtalk}
+                  disabled={sendingAlimtalk || !selectedClient.phone}
+                  className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
+                    sendingAlimtalk || !selectedClient.phone
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600'
+                  }`}
+                >
+                  {sendingAlimtalk ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      발송 중...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                      </svg>
+                      알림톡 발송
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
