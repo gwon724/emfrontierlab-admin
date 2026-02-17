@@ -57,6 +57,11 @@ export default function AdminDashboard() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitData, setLimitData] = useState<any>(null);
   const [loadingLimit, setLoadingLimit] = useState(false);
+  
+  // 파일 첨부 관련 state
+  const [clientFiles, setClientFiles] = useState<any[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -421,6 +426,91 @@ export default function AdminDashboard() {
       setShowLimitModal(false);
     } finally {
       setLoadingLimit(false);
+    }
+  };
+
+  // 파일 목록 조회
+  const fetchClientFiles = async (clientId: number) => {
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(`/api/admin/upload-file?clientId=${clientId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setClientFiles(data.files || []);
+      }
+    } catch (error) {
+      console.error('파일 목록 조회 오류:', error);
+    }
+  };
+
+  // 파일 업로드
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedClient) return;
+
+    setUploadingFile(true);
+    const token = localStorage.getItem('adminToken');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('clientId', selectedClient.id.toString());
+
+      const res = await fetch('/api/admin/upload-file', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        alert('파일이 업로드되었습니다.');
+        fetchClientFiles(selectedClient.id);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || '파일 업로드에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('파일 업로드 오류:', error);
+      alert('파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // 파일 삭제
+  const handleFileDelete = async (fileId: number) => {
+    if (!confirm('이 파일을 삭제하시겠습니까?')) return;
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/delete-file', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fileId })
+      });
+
+      if (res.ok) {
+        alert('파일이 삭제되었습니다.');
+        fetchClientFiles(selectedClient!.id);
+      } else {
+        alert('파일 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('파일 삭제 오류:', error);
+      alert('파일 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -873,6 +963,7 @@ export default function AdminDashboard() {
                             onClick={() => {
                               setSelectedClient(client);
                               setShowClientDetail(true);
+                              fetchClientFiles(client.id);
                             }}
                             className="text-green-600 hover:text-green-900 font-medium"
                           >
@@ -1403,6 +1494,74 @@ export default function AdminDashboard() {
                   재심사 요청하기
                 </button>
               )}
+
+              {/* 파일 첨부 섹션 */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    📎 첨부 파일 ({clientFiles.length}개)
+                  </h4>
+                  <label className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium cursor-pointer">
+                    📤 파일 업로드
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {uploadingFile && (
+                  <div className="text-center py-4 text-gray-600">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+                    업로드 중...
+                  </div>
+                )}
+
+                {clientFiles.length > 0 ? (
+                  <div className="space-y-2">
+                    {clientFiles.map((file: any) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="text-2xl">
+                            {file.fileType?.includes('pdf') ? '📄' :
+                             file.fileType?.includes('image') ? '🖼️' :
+                             file.fileType?.includes('word') || file.fileType?.includes('document') ? '📝' :
+                             file.fileType?.includes('excel') || file.fileType?.includes('spreadsheet') ? '📊' :
+                             '📁'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {file.originalName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(file.fileSize / 1024).toFixed(1)} KB · {new Date(file.uploadedAt).toLocaleString('ko-KR')}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleFileDelete(file.id)}
+                          className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="삭제"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : !uploadingFile && (
+                  <div className="text-center py-8 text-gray-500">
+                    첨부된 파일이 없습니다
+                  </div>
+                )}
+              </div>
 
               {/* 한도 조회 및 문서 편집 버튼 */}
               <div className="grid grid-cols-2 gap-3">
