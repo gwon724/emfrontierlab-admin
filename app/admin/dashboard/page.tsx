@@ -29,6 +29,24 @@ export default function AdminDashboard() {
   const [fundAmounts, setFundAmounts] = useState<{[key: string]: number}>({});
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    age: '',
+    gender: '남성',
+    annual_revenue: '',
+    debt: '',
+    debt_policy_fund: '',
+    debt_credit_loan: '',
+    debt_secondary_loan: '',
+    debt_card_loan: '',
+    kcb_score: '',
+    nice_score: '',
+    has_technology: false,
+    business_years: ''
+  });
 
   useEffect(() => {
     fetchData();
@@ -477,6 +495,85 @@ export default function AdminDashboard() {
     }
   };
 
+  // 클라이언트 추가
+  const handleAddClient = async () => {
+    // 필수 필드 검증
+    if (!newClientData.email || !newClientData.password || !newClientData.name || 
+        !newClientData.age || !newClientData.annual_revenue || !newClientData.debt ||
+        !newClientData.business_years) {
+      alert('필수 정보를 모두 입력해주세요.\n(이메일, 비밀번호, 이름, 나이, 연매출, 총부채, 업력)');
+      return;
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newClientData.email)) {
+      alert('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+
+    // 비밀번호 길이 검증
+    if (newClientData.password.length < 6) {
+      alert('비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/create-client', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...newClientData,
+          age: parseInt(newClientData.age) || 0,
+          annual_revenue: parseInt(newClientData.annual_revenue) || 0,
+          debt: parseInt(newClientData.debt) || 0,
+          debt_policy_fund: parseInt(newClientData.debt_policy_fund) || 0,
+          debt_credit_loan: parseInt(newClientData.debt_credit_loan) || 0,
+          debt_secondary_loan: parseInt(newClientData.debt_secondary_loan) || 0,
+          debt_card_loan: parseInt(newClientData.debt_card_loan) || 0,
+          kcb_score: newClientData.kcb_score ? parseInt(newClientData.kcb_score) : null,
+          nice_score: parseInt(newClientData.nice_score) || 0,
+          business_years: parseInt(newClientData.business_years) || 0
+        })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert(result.message);
+        setShowAddClientModal(false);
+        // 폼 초기화
+        setNewClientData({
+          email: '',
+          password: '',
+          name: '',
+          age: '',
+          gender: '남성',
+          annual_revenue: '',
+          debt: '',
+          debt_policy_fund: '',
+          debt_credit_loan: '',
+          debt_secondary_loan: '',
+          debt_card_loan: '',
+          kcb_score: '',
+          nice_score: '',
+          has_technology: false,
+          business_years: ''
+        });
+        fetchData(); // 목록 새로고침
+      } else {
+        alert(result.error || '클라이언트 등록에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error adding client:', error);
+      alert('클라이언트 등록 중 오류가 발생했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -504,6 +601,15 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-300">정책자금 관리 시스템</p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => setShowAddClientModal(true)}
+              className="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              새 클라이언트
+            </button>
             <button
               onClick={() => setShowQRScanner(true)}
               className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -1269,6 +1375,252 @@ export default function AdminDashboard() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 새 클라이언트 추가 모달 */}
+      {showAddClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                ➕ 새 클라이언트 등록
+              </h3>
+              <button
+                onClick={() => setShowAddClientModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* 기본 정보 */}
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-gray-700 mb-4">📋 기본 정보 (필수)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      이메일 *
+                    </label>
+                    <input
+                      type="email"
+                      value={newClientData.email}
+                      onChange={(e) => setNewClientData({...newClientData, email: e.target.value})}
+                      placeholder="example@email.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      비밀번호 * (최소 6자)
+                    </label>
+                    <input
+                      type="password"
+                      value={newClientData.password}
+                      onChange={(e) => setNewClientData({...newClientData, password: e.target.value})}
+                      placeholder="비밀번호 입력"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      이름 *
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.name}
+                      onChange={(e) => setNewClientData({...newClientData, name: e.target.value})}
+                      placeholder="홍길동"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      나이 *
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.age}
+                      onChange={(e) => setNewClientData({...newClientData, age: e.target.value})}
+                      placeholder="35"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      성별 *
+                    </label>
+                    <select
+                      value={newClientData.gender}
+                      onChange={(e) => setNewClientData({...newClientData, gender: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    >
+                      <option value="남성">남성</option>
+                      <option value="여성">여성</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      업력 (사업 연수) *
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.business_years}
+                      onChange={(e) => setNewClientData({...newClientData, business_years: e.target.value})}
+                      placeholder="5"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 재무 정보 */}
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-gray-700 mb-4">💰 재무 정보 (필수)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      연매출 *
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.annual_revenue}
+                      onChange={(e) => setNewClientData({...newClientData, annual_revenue: e.target.value})}
+                      placeholder="200000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      총 부채 *
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.debt}
+                      onChange={(e) => setNewClientData({...newClientData, debt: e.target.value})}
+                      placeholder="80000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 기대출 상세 (선택) */}
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-gray-700 mb-4">📊 기대출 상세 (선택)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      정책자금 대출
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.debt_policy_fund}
+                      onChange={(e) => setNewClientData({...newClientData, debt_policy_fund: e.target.value})}
+                      placeholder="30000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      신용대출
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.debt_credit_loan}
+                      onChange={(e) => setNewClientData({...newClientData, debt_credit_loan: e.target.value})}
+                      placeholder="40000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      2금융권 대출
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.debt_secondary_loan}
+                      onChange={(e) => setNewClientData({...newClientData, debt_secondary_loan: e.target.value})}
+                      placeholder="10000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      카드론
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.debt_card_loan}
+                      onChange={(e) => setNewClientData({...newClientData, debt_card_loan: e.target.value})}
+                      placeholder="5000000"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 신용 정보 (선택) */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-4">🏆 신용 정보 (선택)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      KCB 점수
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.kcb_score}
+                      onChange={(e) => setNewClientData({...newClientData, kcb_score: e.target.value})}
+                      placeholder="750"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      NICE 점수
+                    </label>
+                    <input
+                      type="number"
+                      value={newClientData.nice_score}
+                      onChange={(e) => setNewClientData({...newClientData, nice_score: e.target.value})}
+                      placeholder="780"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newClientData.has_technology}
+                        onChange={(e) => setNewClientData({...newClientData, has_technology: e.target.checked})}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">기술력 보유</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6 pt-6 border-t">
+              <button
+                onClick={() => setShowAddClientModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleAddClient}
+                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              >
+                등록하기
+              </button>
+            </div>
           </div>
         </div>
       )}
