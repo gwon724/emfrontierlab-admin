@@ -93,6 +93,15 @@ export default function AdminDashboard() {
   const [editingClientPhone, setEditingClientPhone] = useState(false);
   const [newClientPhone, setNewClientPhone] = useState('');
 
+  // 이메일 수정 관련 state
+  const [editingClientEmail, setEditingClientEmail] = useState(false);
+  const [newClientEmail, setNewClientEmail] = useState('');
+
+  // 비밀번호 재설정 관련 state
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   useEffect(() => {
     fetchData();
     // 5초마다 자동 새로고침 (실시간 반영)
@@ -839,6 +848,105 @@ export default function AdminDashboard() {
     }
   };
 
+  // 클라이언트 이메일 수정
+  const handleUpdateClientEmail = async () => {
+    if (!selectedClient) {
+      alert('클라이언트를 선택해주세요.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newClientEmail || !emailRegex.test(newClientEmail)) {
+      alert('올바른 이메일 형식으로 입력해주세요.');
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/update-client-email', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientId: selectedClient.id,
+          email: newClientEmail 
+        })
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        alert('이메일이 변경되었습니다.');
+        setEditingClientEmail(false);
+        setNewClientEmail('');
+        fetchData(); // 데이터 새로고침
+        // selectedClient 업데이트
+        setSelectedClient({
+          ...selectedClient,
+          email: newClientEmail
+        });
+      } else {
+        alert(result.error || '이메일 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating email:', error);
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 클라이언트 비밀번호 재설정
+  const handleResetClientPassword = async () => {
+    if (!selectedClient) {
+      alert('클라이언트를 선택해주세요.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      alert('비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (!confirm(`정말로 "${selectedClient.name}" 클라이언트의 비밀번호를 재설정하시겠습니까?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/reset-client-password', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientId: selectedClient.id,
+          newPassword: newPassword
+        })
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        alert('비밀번호가 재설정되었습니다.');
+        setShowPasswordResetModal(false);
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        alert(result.error || '비밀번호 재설정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+  };
+
   // 알림톡 발송
   const handleSendAlimtalk = async () => {
     if (!selectedClient) {
@@ -1410,8 +1518,46 @@ export default function AdminDashboard() {
                   <p className="text-base font-semibold text-gray-900">{selectedClient.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">이메일</label>
-                  <p className="text-base font-semibold text-gray-900">{selectedClient.email}</p>
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">이메일 (로그인 ID)</label>
+                  {editingClientEmail ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={newClientEmail}
+                        onChange={(e) => setNewClientEmail(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none text-sm"
+                        placeholder="example@email.com"
+                      />
+                      <button
+                        onClick={handleUpdateClientEmail}
+                        className="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all text-sm font-medium"
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingClientEmail(false);
+                          setNewClientEmail('');
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all text-sm font-medium"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold text-gray-900">{selectedClient.email}</p>
+                      <button
+                        onClick={() => {
+                          setEditingClientEmail(true);
+                          setNewClientEmail(selectedClient.email);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                      >
+                        수정
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <label className="text-sm font-medium text-gray-600 mb-1 block">전화번호</label>
@@ -1467,6 +1613,22 @@ export default function AdminDashboard() {
                   <label className="text-sm font-medium text-gray-600">가입일</label>
                   <p className="text-base font-semibold text-gray-900">
                     {new Date(selectedClient.created_at).toLocaleString('ko-KR')}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm font-medium text-gray-600 mb-2 block">로그인 비밀번호</label>
+                  <button
+                    onClick={() => {
+                      setShowPasswordResetModal(true);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all text-sm font-medium"
+                  >
+                    🔑 비밀번호 재설정
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">
+                    클라이언트의 비밀번호를 새로 설정할 수 있습니다
                   </p>
                 </div>
               </div>
@@ -3071,6 +3233,95 @@ export default function AdminDashboard() {
                 className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
               >
                 닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 비밀번호 재설정 모달 */}
+      {showPasswordResetModal && selectedClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                🔑 비밀번호 재설정
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPasswordResetModal(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-yellow-800">
+                  <strong className="font-semibold">{selectedClient.name}</strong> 님의 비밀번호를 재설정합니다.
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  이메일: <strong>{selectedClient.email}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    새 비밀번호 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                    placeholder="최소 6자 이상"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호 확인 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                    placeholder="비밀번호 재입력"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-600">
+                  ⚠️ 비밀번호 재설정 후 클라이언트는 새 비밀번호로 로그인해야 합니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPasswordResetModal(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleResetClientPassword}
+                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium"
+              >
+                비밀번호 재설정
               </button>
             </div>
           </div>
