@@ -142,6 +142,20 @@ export function initDatabase() {
     )
   `);
 
+  // 마이그레이션: applications 테이블에 fund_amounts 컬럼 추가
+  try {
+    database.exec(`ALTER TABLE applications ADD COLUMN fund_amounts TEXT DEFAULT '{}'`);
+  } catch (e) {
+    // 이미 존재하면 무시
+  }
+
+  // 마이그레이션: clients 테이블에 business_years 컬럼 추가
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN business_years INTEGER DEFAULT 0`);
+  } catch (e) {
+    // 이미 존재하면 무시
+  }
+
   // 기본 어드민 계정 생성
   const adminPassword = bcrypt.hashSync('skc07245', 10);
   
