@@ -84,6 +84,23 @@ export default function AdminDashboard() {
   // AI 정책자금 재분석
   const [reanalyzingFunds, setReanalyzingFunds] = useState(false);
 
+  // 파일 보관함
+  const [showFileVault, setShowFileVault] = useState(false);
+  const [fileVaultClient, setFileVaultClient] = useState<any>(null);
+  const [clientFiles, setClientFiles] = useState<any[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 부채정보 수정
+  const [showDebtEdit, setShowDebtEdit] = useState(false);
+  const [debtForm, setDebtForm] = useState({
+    annual_revenue: '', business_years: '',
+    debt_policy_fund: '', debt_credit_loan: '',
+    debt_secondary_loan: '', debt_card_loan: ''
+  });
+  const [savingDebt, setSavingDebt] = useState(false);
+
   const CLIENT_REGISTER_URL = process.env.NEXT_PUBLIC_CLIENT_SITE_URL
     ? `${process.env.NEXT_PUBLIC_CLIENT_SITE_URL}/client/register`
     : 'https://emfrontierlab.vercel.app/client/register';
@@ -474,6 +491,154 @@ export default function AdminDashboard() {
     } catch { alert('삭제 중 오류가 발생했습니다.'); }
   };
 
+  // ── 파일 보관함 ──
+  const openFileVault = async (client: any) => {
+    setFileVaultClient(client);
+    setShowFileVault(true);
+    setLoadingFiles(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(`/api/admin/upload-file?clientId=${client.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const d = await res.json();
+      setClientFiles(d.files || []);
+    } catch { setClientFiles([]); }
+    finally { setLoadingFiles(false); }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !fileVaultClient) return;
+    setUploadingFile(true);
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('clientId', String(fileVaultClient.id));
+    try {
+      const res = await fetch('/api/admin/upload-file', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const d = await res.json();
+      if (res.ok) {
+        alert('✅ 파일이 업로드됐습니다.');
+        await openFileVault(fileVaultClient);
+      } else {
+        alert(d.error || '업로드 실패');
+      }
+    } catch { alert('업로드 중 오류가 발생했습니다.'); }
+    finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteFile = async (fileId: number) => {
+    if (!confirm('이 파일을 삭제하시겠습니까?')) return;
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/delete-file', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId })
+      });
+      if (res.ok) {
+        setClientFiles(prev => prev.filter(f => f.id !== fileId));
+      } else {
+        alert('삭제에 실패했습니다.');
+      }
+    } catch { alert('삭제 중 오류가 발생했습니다.'); }
+  };
+
+  const handleDownloadFile = (fileId: number, fileName: string) => {
+    const token = localStorage.getItem('adminToken');
+    const a = document.createElement('a');
+    a.href = `/api/admin/download-file?fileId=${fileId}`;
+    a.download = fileName;
+    // Authorization 헤더는 fetch로 처리
+    fetch(`/api/admin/download-file?fileId=${fileId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a2 = document.createElement('a');
+        a2.href = url;
+        a2.download = fileName;
+        a2.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => alert('다운로드 중 오류가 발생했습니다.'));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+  };
+
+  // ── 부채정보 수정 ──
+  const openDebtEdit = (client: any) => {
+    setDebtForm({
+      annual_revenue: String(client.annual_revenue || ''),
+      business_years: String(client.business_years || ''),
+      debt_policy_fund: String(client.debt_policy_fund || ''),
+      debt_credit_loan: String(client.debt_credit_loan || ''),
+      debt_secondary_loan: String(client.debt_secondary_loan || ''),
+      debt_card_loan: String(client.debt_card_loan || '')
+    });
+    setShowDebtEdit(true);
+  };
+
+  const handleSaveDebt = async () => {
+    if (!selectedClient) return;
+    setSavingDebt(true);
+    const token = localStorage.getItem('adminToken');
+    const totalDebt =
+      (parseInt(debtForm.debt_policy_fund) || 0) +
+      (parseInt(debtForm.debt_credit_loan) || 0) +
+      (parseInt(debtForm.debt_secondary_loan) || 0) +
+      (parseInt(debtForm.debt_card_loan) || 0);
+    try {
+      const res = await fetch('/api/admin/update-debt', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          annual_revenue: parseInt(debtForm.annual_revenue) || 0,
+          business_years: parseInt(debtForm.business_years) || 0,
+          total_debt: totalDebt,
+          debt_policy_fund: parseInt(debtForm.debt_policy_fund) || 0,
+          debt_credit_loan: parseInt(debtForm.debt_credit_loan) || 0,
+          debt_secondary_loan: parseInt(debtForm.debt_secondary_loan) || 0,
+          debt_card_loan: parseInt(debtForm.debt_card_loan) || 0
+        })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setSelectedClient((prev: any) => ({
+          ...prev,
+          annual_revenue: parseInt(debtForm.annual_revenue) || 0,
+          business_years: parseInt(debtForm.business_years) || 0,
+          debt: totalDebt,
+          debt_policy_fund: parseInt(debtForm.debt_policy_fund) || 0,
+          debt_credit_loan: parseInt(debtForm.debt_credit_loan) || 0,
+          debt_secondary_loan: parseInt(debtForm.debt_secondary_loan) || 0,
+          debt_card_loan: parseInt(debtForm.debt_card_loan) || 0,
+          soho_grade: d.soho_grade,
+        }));
+        setShowDebtEdit(false);
+        fetchData();
+        alert(`✅ 재무정보가 업데이트됐습니다.\nSOHO등급 자동 재계산: ${d.soho_grade}등급`);
+      } else {
+        alert(d.error || '저장 실패');
+      }
+    } catch { alert('저장 중 오류가 발생했습니다.'); }
+    finally { setSavingDebt(false); }
+  };
+
   const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
     const currentIndex = STATUS_LIST.indexOf(currentStatus as StatusType);
     const nextStatus = STATUS_LIST[(currentIndex + 1) % STATUS_LIST.length];
@@ -660,24 +825,45 @@ export default function AdminDashboard() {
                         {new Date(client.created_at).toLocaleDateString('ko-KR')}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => openClientDetail(client)}
-                          className="px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg hover:bg-gray-900 font-medium transition-colors"
-                        >
-                          상세 / 상태관리
-                        </button>
-                        <button
-                          onClick={() => handleOpenFundEval(client)}
-                          className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                        >
-                          🏦 정책자금
-                        </button>
-                        <button
-                          onClick={() => handleOpenCompanyAnalysis(client)}
-                          className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 font-medium transition-colors"
-                        >
-                          📊 기업분석
-                        </button>
+                        <div className="flex flex-col gap-1.5 items-end">
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => openClientDetail(client)}
+                              className="px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg hover:bg-gray-900 font-medium transition-colors"
+                            >
+                              상세 / 상태관리
+                            </button>
+                            <button
+                              onClick={() => handleOpenFundEval(client)}
+                              className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                            >
+                              🏦 정책자금
+                            </button>
+                            <button
+                              onClick={() => handleOpenCompanyAnalysis(client)}
+                              className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                            >
+                              📊 기업분석
+                            </button>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => {
+                                const url = `/admin/document-editor?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`;
+                                window.open(url, '_blank');
+                              }}
+                              className="px-3 py-1.5 bg-teal-600 text-white text-xs rounded-lg hover:bg-teal-700 font-medium transition-colors"
+                            >
+                              📄 서류작성
+                            </button>
+                            <button
+                              onClick={() => openFileVault(client)}
+                              className="px-3 py-1.5 bg-orange-500 text-white text-xs rounded-lg hover:bg-orange-600 font-medium transition-colors"
+                            >
+                              🗂️ 파일보관함
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1113,29 +1299,54 @@ export default function AdminDashboard() {
 
             {/* 하단 버튼 */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 print-hide rounded-b-2xl">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-2">
                 <button
                   onClick={() => handleReanalyzeFunds(selectedClient)}
                   disabled={reanalyzingFunds}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-colors text-sm min-w-[120px] ${reanalyzingFunds ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                  className={`flex-1 py-2.5 rounded-xl font-bold transition-colors text-sm min-w-[120px] ${reanalyzingFunds ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
                   {reanalyzingFunds ? '⏳ 분석중...' : '🔄 AI 정책자금 재분석'}
                 </button>
                 <button
                   onClick={() => handleOpenCompanyAnalysis(selectedClient)}
-                  className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors text-sm min-w-[120px]"
+                  className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors text-sm min-w-[120px]"
                 >
                   📊 AI 기업집중분석
                 </button>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <button
+                  onClick={() => {
+                    const url = `/admin/document-editor?clientId=${selectedClient.id}&clientName=${encodeURIComponent(selectedClient.name)}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="flex-1 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-colors text-sm"
+                >
+                  📄 서류 작성
+                </button>
+                <button
+                  onClick={() => openFileVault(selectedClient)}
+                  className="flex-1 py-2.5 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors text-sm"
+                >
+                  🗂️ 파일 보관함
+                </button>
+                <button
+                  onClick={() => openDebtEdit(selectedClient)}
+                  className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors text-sm"
+                >
+                  💳 재무정보 수정
+                </button>
+              </div>
+              <div className="flex gap-2">
                 <button
                   onClick={() => { setShowClientDetail(false); setSelectedClient(null); setEditingFunds(false); setEditingCredit(false); }}
-                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm min-w-[80px]"
+                  className="flex-1 py-2.5 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm"
                 >
                   닫기
                 </button>
                 <button
                   onClick={() => handleDeleteClient(selectedClient)}
-                  className="px-5 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
+                  className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
                 >
                   🗑️ 삭제
                 </button>
@@ -1631,6 +1842,216 @@ export default function AdminDashboard() {
                   닫기
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 파일 보관함 모달 ===== */}
+      {showFileVault && fileVaultClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[70]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col">
+            {/* 헤더 */}
+            <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-xl">🗂️</div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">파일 보관함</h3>
+                  <p className="text-xs text-gray-500">{fileVaultClient.name}님 서류 파일 관리</p>
+                </div>
+              </div>
+              <button onClick={() => setShowFileVault(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 업로드 영역 */}
+            <div className="flex-shrink-0 px-6 py-4 border-b border-gray-100 bg-orange-50">
+              <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" accept="*/*" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile}
+                className={`w-full py-3 border-2 border-dashed rounded-xl font-semibold text-sm transition-all ${
+                  uploadingFile
+                    ? 'border-gray-300 text-gray-400 cursor-not-allowed bg-gray-50'
+                    : 'border-orange-400 text-orange-600 hover:bg-orange-100 bg-white cursor-pointer'
+                }`}
+              >
+                {uploadingFile ? '⏳ 업로드 중...' : '📎 파일 선택하여 업로드 (모든 형식 지원)'}
+              </button>
+            </div>
+
+            {/* 파일 목록 */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {loadingFiles ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : clientFiles.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">📂</p>
+                  <p className="text-gray-400 text-sm">업로드된 파일이 없습니다.</p>
+                  <p className="text-gray-300 text-xs mt-1">위 버튼으로 파일을 업로드하세요.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {clientFiles.map((file: any) => (
+                    <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="text-xl flex-shrink-0">
+                          {file.fileType?.startsWith('image/') ? '🖼️' :
+                           file.fileType?.includes('pdf') ? '📕' :
+                           file.fileType?.includes('word') || file.fileType?.includes('document') ? '📝' :
+                           file.fileType?.includes('sheet') || file.fileType?.includes('excel') ? '📊' :
+                           '📄'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{file.originalName}</p>
+                          <p className="text-xs text-gray-400">
+                            {formatFileSize(file.fileSize)} · {new Date(file.uploadedAt).toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0 ml-2">
+                        <button
+                          onClick={() => handleDownloadFile(file.id, file.originalName)}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 font-medium"
+                        >
+                          ⬇️ 다운
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFile(file.id)}
+                          className="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 font-medium"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 rounded-b-2xl">
+              <button
+                onClick={() => setShowFileVault(false)}
+                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 재무정보 수정 모달 ===== */}
+      {showDebtEdit && selectedClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[70]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-xl">💳</div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">재무정보 수정</h3>
+                  <p className="text-xs text-gray-500">{selectedClient.name}님 · 수정 후 SOHO등급 자동 재계산</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDebtEdit(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <p className="text-xs text-indigo-700 font-semibold">⚠️ 수정 시 부채 합계가 자동 계산되고 SOHO 등급이 재산정됩니다.</p>
+              </div>
+
+              {/* 기본 재무 */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3">📈 기본 재무 정보</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">연매출 (원)</label>
+                    <input
+                      type="number"
+                      value={debtForm.annual_revenue}
+                      onChange={e => setDebtForm(p => ({ ...p, annual_revenue: e.target.value }))}
+                      placeholder={`현재: ${(selectedClient.annual_revenue || 0).toLocaleString()}`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">사업 연수 (년)</label>
+                    <input
+                      type="number"
+                      value={debtForm.business_years}
+                      onChange={e => setDebtForm(p => ({ ...p, business_years: e.target.value }))}
+                      placeholder={`현재: ${selectedClient.business_years || 0}`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 기대출 내역 */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3">📉 기대출 내역 (원)</p>
+                <div className="space-y-3">
+                  {[
+                    { key: 'debt_policy_fund', label: '정책자금 대출', current: selectedClient.debt_policy_fund },
+                    { key: 'debt_credit_loan', label: '신용대출', current: selectedClient.debt_credit_loan },
+                    { key: 'debt_secondary_loan', label: '2금융권 대출', current: selectedClient.debt_secondary_loan },
+                    { key: 'debt_card_loan', label: '카드론', current: selectedClient.debt_card_loan },
+                  ].map(({ key, label, current }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <label className="text-xs text-gray-600 w-28 flex-shrink-0 font-medium">{label}</label>
+                      <input
+                        type="number"
+                        value={debtForm[key as keyof typeof debtForm]}
+                        onChange={e => setDebtForm(p => ({ ...p, [key]: e.target.value }))}
+                        placeholder={`현재: ${(current || 0).toLocaleString()}`}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-gray-600">부채 합계 (자동계산)</span>
+                    <span className="text-base font-black text-indigo-700">
+                      {(
+                        (parseInt(debtForm.debt_policy_fund) || 0) +
+                        (parseInt(debtForm.debt_credit_loan) || 0) +
+                        (parseInt(debtForm.debt_secondary_loan) || 0) +
+                        (parseInt(debtForm.debt_card_loan) || 0)
+                      ).toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowDebtEdit(false)}
+                className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveDebt}
+                disabled={savingDebt}
+                className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
+                  savingDebt ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {savingDebt ? '저장 중...' : '💾 저장 & SOHO 재계산'}
+              </button>
             </div>
           </div>
         </div>
