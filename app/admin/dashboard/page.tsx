@@ -616,11 +616,6 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto relative" id="client-detail-content">
             
-            {/* 워터마크 */}
-            <div className="watermark">
-              <img src="/emfrontier-logo.png" alt="EMFRONTIER" />
-            </div>
-
             {/* 모달 헤더 */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10 rounded-t-2xl print-hide">
               <div>

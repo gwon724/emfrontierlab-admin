@@ -16,28 +16,9 @@ body {
   box-sizing: border-box;
 }
 
-/* 워터마크 스타일 */
+/* 워터마크 제거됨 */
 .watermark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.5;
-  pointer-events: none;
-  z-index: 1000;
-  width: 600px;
-  height: 600px;
-}
-
-/* 전체 페이지 워터마크용 */
-body > .watermark {
-  position: fixed;
-}
-
-.watermark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: none !important;
 }
 
 /* 프린트 스타일 */
@@ -47,14 +28,6 @@ body > .watermark {
     padding: 0;
   }
   
-  /* 프린트 시 워터마크 유지 */
-  .watermark {
-    position: fixed;
-    opacity: 0.5;
-    z-index: 1000;
-    width: 600px;
-    height: 600px;
-  }
   
   /* 화면 전용 요소 숨김 */
   .print-hide {
