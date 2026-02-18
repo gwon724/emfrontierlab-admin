@@ -99,6 +99,17 @@ export default function AdminDashboard() {
   const [editingClientEmail, setEditingClientEmail] = useState(false);
   const [newClientEmail, setNewClientEmail] = useState('');
 
+  // 재무제표 AI 분석 관련 state
+  const [showFinancialAnalysis, setShowFinancialAnalysis] = useState(false);
+  const [financialData, setFinancialData] = useState([
+    { year: '2023', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+    { year: '2022', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+    { year: '2021', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+  ]);
+  const [showFinancialResult, setShowFinancialResult] = useState(false);
+  const [financialResult, setFinancialResult] = useState<any>(null);
+  const [loadingFinancialAnalysis, setLoadingFinancialAnalysis] = useState(false);
+
   // 비밀번호 재설정 관련 state
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -803,6 +814,71 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting client:', error);
       alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 재무제표 데이터 변경 핸들러
+  const handleFinancialDataChange = (yearIndex: number, field: string, value: string) => {
+    const newData = [...financialData];
+    newData[yearIndex] = {
+      ...newData[yearIndex],
+      [field]: parseInt(value) || 0
+    };
+    setFinancialData(newData);
+  };
+
+  // 재무제표 AI 분석 실행
+  const handleFinancialAnalysis = async () => {
+    if (!selectedClient) {
+      alert('클라이언트를 선택해주세요.');
+      return;
+    }
+
+    // 데이터 검증
+    const hasData = financialData.some(year => 
+      year.revenue > 0 || year.operatingProfit > 0 || year.netProfit > 0
+    );
+    
+    if (!hasData) {
+      alert('최소 한 개년의 재무 데이터를 입력해주세요.');
+      return;
+    }
+
+    if (!confirm('입력하신 재무제표를 기반으로 AI 분석을 진행하시겠습니까?')) {
+      return;
+    }
+
+    setLoadingFinancialAnalysis(true);
+    const token = localStorage.getItem('adminToken');
+    
+    try {
+      const res = await fetch('/api/admin/financial-analysis', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientId: selectedClient.id,
+          financialData 
+        })
+      });
+
+      const result = await res.json();
+      
+      if (res.ok && result.success) {
+        setFinancialResult(result.analysis);
+        setShowFinancialResult(true);
+        setShowFinancialAnalysis(false);
+        fetchData(); // 데이터 새로고침
+      } else {
+        alert(result.error || '재무제표 분석에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error analyzing financial statements:', error);
+      alert('재무제표 분석 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingFinancialAnalysis(false);
     }
   };
 
@@ -1994,6 +2070,14 @@ export default function AdminDashboard() {
                       className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-all font-medium shadow-md"
                     >
                       🤖 AI 진단
+                    </button>
+
+                    {/* 재무제표 AI 분석 버튼 */}
+                    <button
+                      onClick={() => setShowFinancialAnalysis(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md"
+                    >
+                      📈 재무제표 AI 분석
                     </button>
                     
                     {!editingFundAmounts ? (
@@ -3742,6 +3826,240 @@ export default function AdminDashboard() {
           client={selectedClient}
           onClose={() => setShowClientInfoReport(false)}
         />
+      )}
+
+      {/* 재무제표 AI 분석 입력 모달 */}
+      {showFinancialAnalysis && selectedClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-t-lg z-10">
+              <h3 className="text-2xl font-bold">📈 재무제표 AI 분석</h3>
+              <p className="text-green-50 mt-1">고객: {selectedClient.name} | 최근 3개년 재무제표를 입력하시면 AI가 정밀 분석하여 최적의 대출 한도를 산출해드립니다.</p>
+            </div>
+
+            <div className="p-6">
+              {loadingFinancialAnalysis ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mb-4"></div>
+                  <p className="text-lg text-gray-600">AI가 재무제표를 분석하고 있습니다...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {financialData.map((yearData, index) => (
+                      <div key={index} className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                        <h4 className="text-lg font-bold text-green-800 mb-4 flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {yearData.year}년
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">매출액 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.revenue || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'revenue', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">영업이익 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.operatingProfit || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'operatingProfit', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">순이익 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.netProfit || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'netProfit', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">총자산 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.totalAssets || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'totalAssets', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">총부채 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.totalLiabilities || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'totalLiabilities', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">자본금 (원)</label>
+                            <input
+                              type="number"
+                              value={yearData.equity || ''}
+                              onChange={(e) => handleFinancialDataChange(index, 'equity', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 Tip:</strong> 재무제표의 부채, 매출, 순이익 등을 정확히 입력하시면 더욱 정밀한 AI 진단 결과를 받으실 수 있습니다.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={handleFinancialAnalysis}
+                      className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md"
+                    >
+                      🤖 AI 분석 시작
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowFinancialAnalysis(false);
+                        setFinancialData([
+                          { year: '2023', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+                          { year: '2022', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+                          { year: '2021', revenue: 0, operatingProfit: 0, netProfit: 0, totalAssets: 0, totalLiabilities: 0, equity: 0 },
+                        ]);
+                      }}
+                      className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 재무제표 AI 분석 결과 모달 */}
+      {showFinancialResult && financialResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-t-lg z-10">
+              <h3 className="text-2xl font-bold flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                재무제표 AI 분석 결과
+              </h3>
+              <p className="text-green-50 mt-1">3개년 재무제표 기반 정밀 분석 완료</p>
+            </div>
+
+            <div className="p-6">
+              {/* 핵심 지표 요약 */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border-2 border-blue-200">
+                  <p className="text-sm text-blue-600 font-medium mb-1">SOHO 등급</p>
+                  <p className="text-3xl font-bold text-blue-800">{financialResult.sohoGrade}</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-200">
+                  <p className="text-sm text-green-600 font-medium mb-1">최대 대출 한도</p>
+                  <p className="text-2xl font-bold text-green-800">{financialResult.maxLoanLimit?.toLocaleString()}원</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border-2 border-purple-200">
+                  <p className="text-sm text-purple-600 font-medium mb-1">재무건전성 점수</p>
+                  <p className="text-3xl font-bold text-purple-800">{financialResult.financialHealthScore?.toFixed(1)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border-2 border-orange-200">
+                  <p className="text-sm text-orange-600 font-medium mb-1">성장률</p>
+                  <p className="text-3xl font-bold text-orange-800">{(financialResult.growthRate * 100).toFixed(1)}%</p>
+                </div>
+              </div>
+
+              {/* 재무 비율 상세 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    수익성 지표
+                  </h4>
+                  <p className="text-sm text-gray-700">수익성 비율: <span className="font-semibold">{(financialResult.profitabilityRatio * 100).toFixed(2)}%</span></p>
+                </div>
+                <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    안정성 지표
+                  </h4>
+                  <p className="text-sm text-gray-700">안정성 비율: <span className="font-semibold">{(financialResult.stabilityRatio * 100).toFixed(2)}%</span></p>
+                </div>
+              </div>
+
+              {/* 추천 정책자금 */}
+              {financialResult.recommendedFunds && financialResult.recommendedFunds.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-xl font-bold text-gray-800 mb-4">💼 추천 정책자금</h4>
+                  <div className="space-y-3">
+                    {financialResult.recommendedFunds.map((fundName: string, idx: number) => (
+                      <div key={idx} className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50 hover:bg-blue-100 transition-colors">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold text-gray-800">{idx + 1}. {fundName}</p>
+                            <p className="text-xs text-gray-600 mt-1">재무제표 기반 추천 자금</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-blue-600 font-medium">최대 1억원</p>
+                            <p className="text-xs text-gray-500">금리 2.5% | 60개월</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 상세 분석 내용 */}
+              {financialResult.details && (
+                <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50 mb-6">
+                  <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    상세 분석 내용
+                  </h4>
+                  <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">{financialResult.details}</pre>
+                </div>
+              )}
+
+              {/* 버튼 영역 */}
+              <button
+                onClick={() => {
+                  setShowFinancialResult(false);
+                  setFinancialResult(null);
+                }}
+                className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <footer className="text-center text-gray-500 text-sm py-6">
