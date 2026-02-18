@@ -15,3 +15,63 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* 워터마크 스타일 */
+.watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+  width: 400px;
+  height: 400px;
+}
+
+.watermark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 프린트 스타일 */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* 프린트 시 워터마크 유지 */
+  .watermark {
+    position: fixed;
+    opacity: 0.08;
+    z-index: 0;
+  }
+  
+  /* 화면 전용 요소 숨김 */
+  .print-hide {
+    display: none !important;
+  }
+  
+  /* 페이지 설정 */
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+  
+  /* 페이지 나누기 제어 */
+  .page-break {
+    page-break-after: always;
+  }
+  
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+  
+  /* 색상 정확히 출력 */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}

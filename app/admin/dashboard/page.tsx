@@ -637,10 +637,35 @@ export default function AdminDashboard() {
       {/* 회원 상세 정보 모달 */}
       {showClientDetail && selectedClient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">
-              회원 상세 정보
-            </h3>
+          
+          {/* 워터마크 */}
+          <div className="watermark">
+            <img src="/emfrontier-logo.png" alt="EMFRONTIER" />
+          </div>
+          
+          <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto" id="client-detail-content">
+            <div className="flex justify-between items-center mb-6 print-hide">
+              <h3 className="text-2xl font-bold text-gray-800">
+                회원 상세 정보
+              </h3>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
+                title="인쇄"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                인쇄
+              </button>
+            </div>
+
+            {/* 프린트 전용 헤더 */}
+            <div className="hidden print:block mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                회원 상세 정보
+              </h3>
+            </div>
 
             {/* 기본 정보 */}
             <div className="mb-6">
@@ -879,7 +904,7 @@ export default function AdminDashboard() {
                 setShowClientDetail(false);
                 setSelectedClient(null);
               }}
-              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors print-hide"
             >
               닫기
             </button>

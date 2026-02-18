@@ -91,16 +91,6 @@ export default function Home() {
               관리자 로그인
             </Link>
           </div>
-
-          <div className="bg-gray-800 bg-opacity-50 rounded-lg p-4 mt-6">
-            <p className="text-xs text-gray-400 mb-2">
-              <strong className="text-white">관리자 문의</strong>
-            </p>
-            <p className="text-xs text-gray-400">
-              연락처: 010-8178-4281<br/>
-              담당자: 권권권
-            </p>
-          </div>
         </div>
       </div>
       

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -9,7 +9,20 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+
+  // 페이지 로드 시 저장된 계정 정보 불러오기
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('savedAdminEmail');
+    const savedPassword = localStorage.getItem('savedAdminPassword');
+    
+    if (savedEmail && savedPassword) {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +41,16 @@ export default function AdminLogin() {
       if (res.ok) {
         localStorage.setItem('adminToken', data.token);
         localStorage.setItem('adminData', JSON.stringify(data.admin));
+        
+        // 자동 로그인 체크 시 계정 정보 저장
+        if (rememberMe) {
+          localStorage.setItem('savedAdminEmail', email);
+          localStorage.setItem('savedAdminPassword', password);
+        } else {
+          localStorage.removeItem('savedAdminEmail');
+          localStorage.removeItem('savedAdminPassword');
+        }
+        
         router.push('/admin/dashboard');
       } else {
         setError(data.error || '로그인에 실패했습니다.');
@@ -84,6 +107,19 @@ export default function AdminLogin() {
               />
             </div>
 
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-gray-800 border-gray-300 rounded focus:ring-gray-800"
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 cursor-pointer">
+                자동 로그인
+              </label>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -97,14 +133,6 @@ export default function AdminLogin() {
             <Link href="/admin" className="text-sm text-blue-600 hover:text-blue-700 underline">
               ← 관리자 홈으로
             </Link>
-          </div>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 text-center">
-              <strong>관리자 문의:</strong><br/>
-              연락처: 010-8178-4281<br/>
-              담당자: 권권권
-            </p>
           </div>
         </div>
       </div>

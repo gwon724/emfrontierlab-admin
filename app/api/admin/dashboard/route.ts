@@ -24,16 +24,18 @@ export async function GET(request: NextRequest) {
         c.*,
         a.status as application_status,
         a.id as application_id,
-        a.policy_funds as policy_funds
+        a.policy_funds as policy_funds,
+        a.fund_amounts as fund_amounts
       FROM clients c
       LEFT JOIN applications a ON c.id = a.client_id
       ORDER BY c.created_at DESC
     `).all();
 
-    // policy_funds JSON 파싱
+    // policy_funds와 fund_amounts JSON 파싱
     const parsedClients = (clients as any[]).map((client: any) => ({
       ...client,
-      policy_funds: client.policy_funds ? JSON.parse(client.policy_funds) : []
+      policy_funds: client.policy_funds ? JSON.parse(client.policy_funds) : [],
+      fund_amounts: client.fund_amounts ? JSON.parse(client.fund_amounts) : {}
     }));
 
     // 상태별 카운트

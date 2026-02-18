@@ -41,6 +41,34 @@ npm run dev
 - 이메일: admin@emfrontier.com
 - 비밀번호: admin123
 
+### 관리자 계정 관리
+
+**관리자 목록 보기**
+```bash
+npm run admin:list
+```
+
+**비밀번호 재설정**
+```bash
+npm run admin:reset <이메일> <새비밀번호>
+
+# 예시
+npm run admin:reset admin@emfrontier.com newpassword123
+```
+
+**새 관리자 생성**
+```bash
+npm run admin:create <이메일> <비밀번호> <이름>
+
+# 예시
+npm run admin:create admin2@emfrontier.com password123 "관리자2"
+```
+
+**데이터베이스 초기화**
+```bash
+npm run db:init
+```
+
 ## 🏗️ 기술 스택
 
 - **Framework**: Next.js 15 (App Router)
