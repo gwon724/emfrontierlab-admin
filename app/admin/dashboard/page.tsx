@@ -69,6 +69,9 @@ export default function AdminDashboard() {
   const [fundEvalData, setFundEvalData] = useState<any>(null);
   const [loadingFundEval, setLoadingFundEval] = useState(false);
   const [fundFilter, setFundFilter] = useState<'all'|'eligible'|'ineligible'>('all');
+  const [fundEvalSelected, setFundEvalSelected] = useState<string[]>([]);
+  const [registeringFunds, setRegisteringFunds] = useState(false);
+  const [registerMode, setRegisterMode] = useState<'add'|'replace'>('add');
 
   // AI 기업집중분석
   const [showCompanyAnalysis, setShowCompanyAnalysis] = useState(false);
@@ -390,6 +393,8 @@ export default function AdminDashboard() {
     setShowFundEval(true);
     setFundEvalData(null);
     setLoadingFundEval(true);
+    setFundEvalSelected([]);
+    setRegisterMode('add');
     const token = localStorage.getItem('adminToken');
     try {
       const res = await fetch('/api/admin/evaluate-funds', {
@@ -402,6 +407,39 @@ export default function AdminDashboard() {
       else alert(d.error || '분석 실패');
     } catch { alert('오류 발생'); }
     finally { setLoadingFundEval(false); }
+  };
+
+  // 자금 선택 토글
+  const toggleFundEvalSelected = (fundName: string) => {
+    setFundEvalSelected(prev =>
+      prev.includes(fundName) ? prev.filter(f => f !== fundName) : [...prev, fundName]
+    );
+  };
+
+  // AI 평가 모달에서 선택된 자금 등록
+  const handleRegisterFundsFromEval = async () => {
+    if (!selectedClient || fundEvalSelected.length === 0) return;
+    const modeLabel = registerMode === 'replace' ? '교체' : '추가';
+    if (!confirm(`${selectedClient.name}님에게 ${fundEvalSelected.length}개 자금을 ${modeLabel}하시겠습니까?\n\n${fundEvalSelected.join('\n')}`)) return;
+    setRegisteringFunds(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/register-funds-from-eval', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: selectedClient.id, selectedFunds: fundEvalSelected, mode: registerMode })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        alert(`✅ ${d.message}\n\n등록된 자금:\n${d.registeredFunds.join('\n')}`);
+        setShowFundEval(false);
+        setFundEvalSelected([]);
+        fetchData();
+      } else {
+        alert(d.error || '자금 등록에 실패했습니다.');
+      }
+    } catch { alert('자금 등록 중 오류가 발생했습니다.'); }
+    finally { setRegisteringFunds(false); }
   };
 
   // 신용점수 수정
@@ -442,6 +480,7 @@ export default function AdminDashboard() {
   // AI 정책자금 재분석
   const handleReanalyzeFunds = async (client: any) => {
     setReanalyzingFunds(true);
+    setFundEvalSelected([]);
     const token = localStorage.getItem('adminToken');
     try {
       const res = await fetch('/api/admin/evaluate-funds', {
@@ -1282,6 +1321,22 @@ export default function AdminDashboard() {
                 {/* 자금별 상태 카드 */}
                 {selectedClient.policy_funds && selectedClient.policy_funds.length > 0 ? (
                   <div className="space-y-3">
+                    {/* 자금 전체 진행 요약 */}
+                    <div className="grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      {['접수대기','접수완료','진행중','진행완료'].map(s => {
+                        const cnt = selectedClient.policy_funds.filter((f: string) =>
+                          (selectedClient.fund_statuses?.[f]?.status || '접수대기') === s
+                        ).length;
+                        const sCfg = STATUS_CONFIG[s];
+                        return (
+                          <div key={s} className={`text-center p-2 rounded-lg border ${sCfg.bg} ${sCfg.border}`}>
+                            <p className={`text-lg font-black ${sCfg.text}`}>{cnt}</p>
+                            <p className={`text-xs font-medium ${sCfg.text}`}>{sCfg.icon} {s}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
                     {selectedClient.policy_funds.map((fund: string) => {
                       const edit = fundStatusEdits[fund] || { status: '접수대기', notes: '' };
                       const saved = selectedClient.fund_statuses?.[fund];
@@ -1289,16 +1344,30 @@ export default function AdminDashboard() {
                       const justSaved = savedFundStatus === fund;
                       const savedStatus = saved?.status || '접수대기';
                       const cfg = STATUS_CONFIG[savedStatus] || STATUS_CONFIG['접수대기'];
+                      const editCfg = STATUS_CONFIG[edit.status] || STATUS_CONFIG['접수대기'];
+
+                      // 정상 흐름 스텝바
+                      const STEPS = ['접수대기','접수완료','진행중','진행완료','집행완료'];
+                      const stepIdx = STEPS.indexOf(savedStatus);
+                      const isSpecial = savedStatus === '보완' || savedStatus === '반려';
 
                       return (
-                        <div key={fund} className={`border-2 rounded-xl overflow-hidden transition-all ${justSaved ? 'border-green-400 shadow-md' : 'border-gray-200'}`}>
+                        <div key={fund} className={`border-2 rounded-xl overflow-hidden transition-all shadow-sm ${
+                          justSaved ? 'border-green-400 shadow-md' :
+                          savedStatus === '집행완료' ? 'border-purple-300' :
+                          savedStatus === '진행완료' ? 'border-green-300' :
+                          savedStatus === '진행중' ? 'border-yellow-300' :
+                          savedStatus === '반려' ? 'border-red-300' :
+                          savedStatus === '보완' ? 'border-orange-300' :
+                          'border-gray-200'
+                        }`}>
                           {/* 자금명 헤더 */}
                           <div className={`flex items-center justify-between px-4 py-3 ${cfg.bg} border-b ${cfg.border}`}>
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-                              <span className="font-bold text-gray-800 text-sm">{fund}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className={`flex-shrink-0 w-3 h-3 rounded-full ${cfg.dot}`} />
+                              <span className="font-bold text-gray-800 text-sm truncate">{fund}</span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               {justSaved && (
                                 <span className="text-xs text-green-600 font-semibold animate-pulse">✅ 저장됨</span>
                               )}
@@ -1308,11 +1377,53 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
+                          {/* 미니 스텝바 (정상 흐름만) */}
+                          {!isSpecial && (
+                            <div className="px-4 pt-2.5 pb-1 bg-white border-b border-gray-100">
+                              <div className="flex items-center justify-between relative">
+                                <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200" style={{zIndex:0}} />
+                                <div
+                                  className="absolute top-3 left-0 h-0.5 bg-blue-400 transition-all duration-500"
+                                  style={{ width: stepIdx >= 0 ? `${(stepIdx / (STEPS.length - 1)) * 100}%` : '0%', zIndex:1 }}
+                                />
+                                {STEPS.map((s, i) => {
+                                  const sDone = i < stepIdx;
+                                  const sCur = i === stepIdx;
+                                  return (
+                                    <div key={s} className="flex flex-col items-center" style={{zIndex:2}}>
+                                      <div
+                                        onClick={() => setFundStatusEdits(prev => ({ ...prev, [fund]: { ...prev[fund], status: s } }))}
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer border-2 transition-all ${
+                                          sCur ? 'bg-blue-600 text-white border-blue-600 scale-110 shadow' :
+                                          sDone ? 'bg-blue-100 text-blue-600 border-blue-300' :
+                                          'bg-white text-gray-400 border-gray-300 hover:border-blue-300'
+                                        }`}
+                                        title={`${s}로 변경`}
+                                      >
+                                        {sDone ? '✓' : i + 1}
+                                      </div>
+                                      <span className={`text-xs mt-0.5 leading-tight text-center ${sCur ? 'text-blue-700 font-bold' : 'text-gray-400'}`} style={{fontSize:'8px', maxWidth:'40px'}}>
+                                        {s}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
                           {/* 상태 변경 영역 */}
                           <div className="px-4 py-3 bg-white">
                             {/* 상태 선택 버튼 그룹 */}
                             <div className="mb-3">
-                              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">상태 선택</label>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">상태 변경</label>
+                                {edit.status !== savedStatus && (
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${editCfg.bg} ${editCfg.text} font-semibold`}>
+                                    → {edit.status}
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex flex-wrap gap-1.5">
                                 {STATUS_LIST.map((s) => {
                                   const sCfg = STATUS_CONFIG[s];
@@ -1333,6 +1444,39 @@ export default function AdminDashboard() {
                                 })}
                               </div>
                             </div>
+
+                            {/* 빠른 다음 단계 버튼 */}
+                            {!isSpecial && stepIdx < STEPS.length - 1 && (
+                              <div className="mb-3">
+                                <button
+                                  onClick={async () => {
+                                    const nextStatus = STEPS[stepIdx + 1];
+                                    setFundStatusEdits(prev => ({ ...prev, [fund]: { ...prev[fund], status: nextStatus } }));
+                                    // 즉시 저장
+                                    setSavingFundStatus(fund);
+                                    const token = localStorage.getItem('adminToken');
+                                    try {
+                                      const res = await fetch('/api/admin/update-fund-status', {
+                                        method: 'PUT',
+                                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ clientId: selectedClient.id, fundName: fund, status: nextStatus, notes: fundStatusEdits[fund]?.notes || '' })
+                                      });
+                                      if (res.ok) {
+                                        setSavedFundStatus(fund);
+                                        const updatedFundStatuses = { ...selectedClient.fund_statuses, [fund]: { status: nextStatus, notes: fundStatusEdits[fund]?.notes || '', updated_at: new Date().toISOString() } };
+                                        setSelectedClient({ ...selectedClient, fund_statuses: updatedFundStatuses });
+                                        setTimeout(() => setSavedFundStatus(null), 2000);
+                                        fetchData();
+                                      }
+                                    } catch {}
+                                    finally { setSavingFundStatus(null); }
+                                  }}
+                                  className="w-full py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm"
+                                >
+                                  ⚡ 다음 단계로: {STEPS[stepIdx + 1]} →
+                                </button>
+                              </div>
+                            )}
 
                             {/* 메모 + 저장 */}
                             <div className="flex gap-2 items-center">
@@ -1358,11 +1502,11 @@ export default function AdminDashboard() {
                               </button>
                             </div>
 
-                            {/* 마지막 수정 시각 */}
+                            {/* 마지막 수정 시각 + 메모 */}
                             {saved?.updated_at && (
-                              <p className="text-xs text-gray-400 mt-2">
-                                마지막 수정: {new Date(saved.updated_at).toLocaleString('ko-KR')}
-                                {saved.notes && <span className="ml-2 text-gray-500">「{saved.notes}」</span>}
+                              <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                <span>🕐 {new Date(saved.updated_at).toLocaleString('ko-KR')}</span>
+                                {saved.notes && <span className="text-gray-500 ml-1">「{saved.notes}」</span>}
                               </p>
                             )}
                           </div>
@@ -1372,13 +1516,23 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="p-8 bg-gray-50 rounded-xl text-center border-2 border-dashed border-gray-200">
-                    <p className="text-gray-400 text-sm mb-2">배정된 정책자금이 없습니다.</p>
-                    <button
-                      onClick={handleStartEditFunds}
-                      className="text-blue-600 text-sm underline hover:text-blue-800"
-                    >
-                      + 자금 목록 수정에서 추가하기
-                    </button>
+                    <p className="text-4xl mb-3">📭</p>
+                    <p className="text-gray-500 font-semibold mb-2">배정된 정책자금이 없습니다.</p>
+                    <p className="text-gray-400 text-sm mb-3">AI 정책자금 평가를 통해 적합한 자금을 추천받고 등록하세요.</p>
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      <button
+                        onClick={() => { setShowClientDetail(false); handleOpenFundEval(selectedClient); }}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-semibold"
+                      >
+                        🏦 AI 정책자금 평가
+                      </button>
+                      <button
+                        onClick={handleStartEditFunds}
+                        className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 font-semibold"
+                      >
+                        ✏️ 직접 추가
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1541,7 +1695,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-500">{fundEvalData?.clientName || selectedClient?.name}님 · 조건별 충족 여부 분석</p>
                 </div>
               </div>
-              <button onClick={() => setShowFundEval(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <button onClick={() => { setShowFundEval(false); setFundEvalSelected([]); }} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1557,7 +1711,7 @@ export default function AdminDashboard() {
               ) : fundEvalData ? (
                 <>
                   {/* 요약 카드 */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-4 mb-5">
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200">
                       <p className="text-xs text-blue-600 font-semibold mb-1">SOHO 등급</p>
                       <p className="text-3xl font-black text-blue-700">{fundEvalData.sohoGrade}</p>
@@ -1575,13 +1729,22 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* 필터 탭 */}
-                  <div className="flex gap-2 mb-4">
+                  {/* 관리자 등록 안내 배너 */}
+                  <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-start gap-2">
+                    <span className="text-indigo-500 text-lg mt-0.5">👆</span>
+                    <div>
+                      <p className="text-xs font-bold text-indigo-800">조건 충족 자금을 선택하여 클라이언트에게 등록할 수 있습니다.</p>
+                      <p className="text-xs text-indigo-600 mt-0.5">✅ 충족된 자금 카드를 클릭하여 선택 → 하단 등록 모드 선택 후 등록하세요.</p>
+                    </div>
+                  </div>
+
+                  {/* 필터 탭 + 전체 선택 */}
+                  <div className="flex gap-2 mb-4 flex-wrap">
                     {(['all', 'eligible', 'ineligible'] as const).map((f) => (
                       <button
                         key={f}
                         onClick={() => setFundFilter(f)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                           fundFilter === f ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -1590,9 +1753,22 @@ export default function AdminDashboard() {
                          `❌ 미충족 (${fundEvalData.funds?.filter((x: any) => !x.eligible).length})`}
                       </button>
                     ))}
+                    {fundEvalData.funds?.some((f: any) => f.eligible) && (
+                      <button
+                        onClick={() => {
+                          const eligibleNames = fundEvalData.funds.filter((f: any) => f.eligible).map((f: any) => f.name);
+                          const allSelected = eligibleNames.every((n: string) => fundEvalSelected.includes(n));
+                          setFundEvalSelected(allSelected ? [] : eligibleNames);
+                        }}
+                        className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 transition-all"
+                      >
+                        {fundEvalData.funds.filter((f: any) => f.eligible).every((f: any) => fundEvalSelected.includes(f.name))
+                          ? '선택 전체 해제' : '✅ 충족 전체 선택'}
+                      </button>
+                    )}
                   </div>
 
-                  {/* 자금별 카드 - 노션 스타일 */}
+                  {/* 자금별 카드 */}
                   <div className="space-y-3">
                     {fundEvalData.funds
                       ?.filter((fund: any) =>
@@ -1600,69 +1776,161 @@ export default function AdminDashboard() {
                         fundFilter === 'eligible' ? fund.eligible :
                         !fund.eligible
                       )
-                      .map((fund: any, idx: number) => (
-                        <div key={idx} className={`border-2 rounded-xl overflow-hidden ${fund.eligible ? 'border-green-300' : 'border-gray-200'}`}>
-                          {/* 자금 헤더 */}
-                          <div className={`flex items-center justify-between px-4 py-3 ${fund.eligible ? 'bg-green-50' : 'bg-gray-50'}`}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">
-                                {fund.category?.includes('중진공') ? '🏢' :
-                                 fund.category?.includes('소진공') ? '🏪' :
-                                 fund.category?.includes('신용보증') ? '🛡️' :
-                                 fund.category?.includes('기술보증') ? '🔬' : '💼'}
-                              </span>
-                              <div>
-                                <p className="font-bold text-gray-900 text-sm">{fund.name}</p>
-                                <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">{fund.category}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 text-right">
-                              <div>
-                                <p className="text-xs text-gray-500">최대 한도</p>
-                                <p className={`font-bold text-sm ${fund.eligible ? 'text-green-700' : 'text-gray-500'}`}>
-                                  {(fund.max_amount / 100000000).toFixed(1) === '0.0'
-                                    ? (fund.max_amount / 10000000).toFixed(0) + '천만'
-                                    : (fund.max_amount / 100000000).toFixed(1) + '억'}원
-                                </p>
-                              </div>
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                fund.eligible ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
-                              }`}>
-                                {fund.passCount}/{fund.totalCount}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 조건 체크 목록 - 노션 테이블 스타일 */}
-                          <div className="px-4 py-3 bg-white">
-                            <div className="divide-y divide-gray-100">
-                              {fund.conditions?.map((cond: any, ci: number) => (
-                                <div key={ci} className="flex items-center justify-between py-2">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                                      cond.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-                                    }`}>
-                                      {cond.passed ? '✓' : '✗'}
-                                    </span>
-                                    <span className="text-sm text-gray-700 font-medium">{cond.label}</span>
+                      .map((fund: any, idx: number) => {
+                        const isSelected = fundEvalSelected.includes(fund.name);
+                        const canSelect = fund.eligible;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => canSelect && toggleFundEvalSelected(fund.name)}
+                            className={`border-2 rounded-xl overflow-hidden transition-all ${
+                              canSelect ? 'cursor-pointer' : ''
+                            } ${
+                              isSelected
+                                ? 'border-blue-500 shadow-md ring-2 ring-blue-200'
+                                : fund.eligible
+                                ? 'border-green-300 hover:border-green-400'
+                                : 'border-gray-200'
+                            }`}
+                          >
+                            {/* 자금 헤더 */}
+                            <div className={`flex items-center justify-between px-4 py-3 ${
+                              isSelected ? 'bg-blue-50' : fund.eligible ? 'bg-green-50' : 'bg-gray-50'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                {/* 체크박스 (충족 자금만) */}
+                                {canSelect && (
+                                  <div
+                                    onClick={(e) => { e.stopPropagation(); toggleFundEvalSelected(fund.name); }}
+                                    className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                      isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-400 bg-white'
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
                                   </div>
-                                  <div className="flex items-center gap-4 text-right">
-                                    <div>
-                                      <p className="text-xs text-gray-400">기준</p>
-                                      <p className="text-xs font-semibold text-gray-600">{cond.required}</p>
-                                    </div>
-                                    <div className="w-20">
-                                      <p className="text-xs text-gray-400">실제값</p>
-                                      <p className={`text-xs font-bold ${cond.passed ? 'text-green-600' : 'text-red-500'}`}>{cond.actual}</p>
-                                    </div>
-                                  </div>
+                                )}
+                                <span className="text-lg">
+                                  {fund.category?.includes('중진공') ? '🏢' :
+                                   fund.category?.includes('소진공') ? '🏪' :
+                                   fund.category?.includes('신용보증') ? '🛡️' :
+                                   fund.category?.includes('기술보증') ? '🔬' : '💼'}
+                                </span>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">{fund.name}</p>
+                                  <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">{fund.category}</span>
                                 </div>
-                              ))}
+                              </div>
+                              <div className="flex items-center gap-3 text-right">
+                                <div>
+                                  <p className="text-xs text-gray-500">최대 한도</p>
+                                  <p className={`font-bold text-sm ${fund.eligible ? 'text-green-700' : 'text-gray-500'}`}>
+                                    {(fund.max_amount / 100000000).toFixed(1) === '0.0'
+                                      ? (fund.max_amount / 10000000).toFixed(0) + '천만'
+                                      : (fund.max_amount / 100000000).toFixed(1) + '억'}원
+                                  </p>
+                                </div>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                  isSelected ? 'bg-blue-500 text-white' :
+                                  fund.eligible ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+                                }`}>
+                                  {fund.passCount}/{fund.totalCount}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 조건 체크 목록 */}
+                            <div className="px-4 py-3 bg-white">
+                              <div className="divide-y divide-gray-100">
+                                {fund.conditions?.map((cond: any, ci: number) => (
+                                  <div key={ci} className="flex items-center justify-between py-2">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                        cond.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                                      }`}>
+                                        {cond.passed ? '✓' : '✗'}
+                                      </span>
+                                      <span className="text-sm text-gray-700 font-medium">{cond.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-right">
+                                      <div>
+                                        <p className="text-xs text-gray-400">기준</p>
+                                        <p className="text-xs font-semibold text-gray-600">{cond.required}</p>
+                                      </div>
+                                      <div className="w-20">
+                                        <p className="text-xs text-gray-400">실제값</p>
+                                        <p className={`text-xs font-bold ${cond.passed ? 'text-green-600' : 'text-red-500'}`}>{cond.actual}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {fund.eligible && (
+                                <div className={`mt-2 px-3 py-2 rounded-lg border ${
+                                  isSelected ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
+                                }`}>
+                                  <p className={`text-xs font-semibold ${isSelected ? 'text-blue-700' : 'text-green-700'}`}>
+                                    {isSelected ? '✅ 선택됨 — 등록 가능' : '✅ 모든 조건 충족'}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
+
+                  {/* 선택된 자금 + 등록 모드 선택 */}
+                  {fundEvalSelected.length > 0 && (
+                    <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+                      <p className="text-sm font-bold text-indigo-800 mb-2">
+                        📋 선택된 자금: {fundEvalSelected.length}개
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {fundEvalSelected.map(name => (
+                          <span
+                            key={name}
+                            onClick={() => toggleFundEvalSelected(name)}
+                            className="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full font-medium cursor-pointer hover:bg-red-500 transition-colors"
+                            title="클릭하여 제거"
+                          >
+                            {name} ✕
+                          </span>
+                        ))}
+                      </div>
+                      {/* 등록 모드 선택 */}
+                      <div className="flex gap-2">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="registerMode"
+                            value="add"
+                            checked={registerMode === 'add'}
+                            onChange={() => setRegisterMode('add')}
+                            className="text-indigo-600"
+                          />
+                          <span className="text-xs font-medium text-gray-700">기존에 추가</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="registerMode"
+                            value="replace"
+                            checked={registerMode === 'replace'}
+                            onChange={() => setRegisterMode('replace')}
+                            className="text-red-600"
+                          />
+                          <span className="text-xs font-medium text-red-700">기존 교체</span>
+                        </label>
+                        <p className="text-xs text-gray-500 ml-1 self-center">
+                          {registerMode === 'add' ? '(기존 자금에 추가)' : '(기존 자금 모두 교체)'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-center text-gray-400 py-8">데이터를 불러오지 못했습니다.</p>
@@ -1670,12 +1938,30 @@ export default function AdminDashboard() {
             </div>
 
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-2xl">
-              <button
-                onClick={() => setShowFundEval(false)}
-                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
-              >
-                닫기
-              </button>
+              <div className="flex gap-3 flex-wrap">
+                {/* 등록 버튼 (선택된 자금 있을 때) */}
+                {fundEvalSelected.length > 0 && (
+                  <button
+                    onClick={handleRegisterFundsFromEval}
+                    disabled={registeringFunds}
+                    className={`flex-1 py-3 rounded-xl font-bold transition-colors text-sm min-w-[160px] ${
+                      registeringFunds
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : registerMode === 'replace'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {registeringFunds ? '등록 중...' : `${registerMode === 'replace' ? '🔄 교체 등록' : '➕ 추가 등록'} (${fundEvalSelected.length}개)`}
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowFundEval(false)}
+                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm"
+                >
+                  닫기
+                </button>
+              </div>
             </div>
           </div>
         </div>
