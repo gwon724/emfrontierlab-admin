@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
+import { calculateSOHOGrade, calculateMaxLoanLimit } from '@/lib/ai-diagnosis';
 
 export async function PUT(req: Request) {
   try {
@@ -40,8 +41,8 @@ export async function PUT(req: Request) {
     // 데이터베이스 연결
     const db = getDatabase();
 
-    // 클라이언트 존재 확인
-    const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(clientId);
+    // 클라이언트 전체 정보 조회 (SOHO 등급 재계산용)
+    const client: any = db.prepare('SELECT * FROM clients WHERE id = ?').get(clientId);
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
@@ -71,9 +72,33 @@ export async function PUT(req: Request) {
       clientId
     );
 
+    // SOHO 등급 및 점수 재계산
+    const clientData = {
+      niceScore: client.nice_score || 0,
+      kcb_score: client.kcb_score || 0,
+      annualRevenue: annual_revenue || 0,
+      debt: total_debt,
+      hasTechnology: client.has_technology === 1,
+      businessYears: business_years || 0
+    };
+
+    const newSohoGrade = calculateSOHOGrade(clientData);
+    const newMaxScore = calculateMaxLoanLimit(clientData, newSohoGrade);
+
+    // SOHO 등급과 점수 업데이트
+    db.prepare(`
+      UPDATE clients 
+      SET 
+        soho_grade = ?,
+        score = ?
+      WHERE id = ?
+    `).run(newSohoGrade, newMaxScore, clientId);
+
     return NextResponse.json({
       success: true,
-      message: 'Debt information updated successfully'
+      message: 'Debt information updated successfully',
+      soho_grade: newSohoGrade,
+      score: newMaxScore
     });
 
   } catch (error: any) {

@@ -653,14 +653,17 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
-        alert('부채 정보가 업데이트되었습니다.');
+        const result = await res.json();
+        alert(`부채 정보가 업데이트되었습니다.\n새로운 SOHO 등급: ${result.soho_grade}\n새로운 점수: ${result.score?.toLocaleString()}원`);
         setEditingDebt(false);
         fetchData();
         
         // 선택된 클라이언트 정보도 업데이트
         setSelectedClient({
           ...selectedClient,
-          ...debtData
+          ...debtData,
+          soho_grade: result.soho_grade,
+          score: result.score
         });
       } else {
         alert('업데이트에 실패했습니다.');
