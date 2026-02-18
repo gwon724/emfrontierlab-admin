@@ -111,9 +111,11 @@ async function calculateFundSpecificLimits(client: any, sohoGrade: string, maxLi
     }
     
     if (fund.fund_name.includes('취약')) {
-      // 취약소상공인 자금은 신용점수 제한
+      // 취약소상공인 자금은 신용점수 제한 + 최대 3000만원
       if (client.nice_score > 839) {
         adjustedLimit = 0;
+      } else {
+        adjustedLimit = Math.min(adjustedLimit, 30000000); // 최대 3000만원
       }
     }
     

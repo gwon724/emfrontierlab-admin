@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
 import { verifyToken } from '@/lib/auth';
+import { getDatabase } from '@/lib/db';
 
 export async function PUT(req: Request) {
   try {
@@ -20,7 +20,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const {
       clientId,
-      debt,
+      total_debt,
       debt_policy_fund,
       debt_credit_loan,
       debt_secondary_loan,
@@ -28,43 +28,42 @@ export async function PUT(req: Request) {
     } = body;
 
     // 필수 필드 검증
-    if (!clientId || debt === undefined) {
+    if (!clientId || total_debt === undefined) {
       return NextResponse.json({ 
         error: 'Missing required fields',
-        required: ['clientId', 'debt']
+        required: ['clientId', 'total_debt']
       }, { status: 400 });
     }
 
     // 데이터베이스 연결
-    const db = new Database('./database.db');
+    const db = getDatabase();
 
     // 클라이언트 존재 확인
     const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(clientId);
     if (!client) {
-      db.close();
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // 부채 정보 업데이트
+    // 부채 정보 업데이트 (debt와 total_debt 모두 업데이트)
     db.prepare(`
       UPDATE clients 
       SET 
         debt = ?,
+        total_debt = ?,
         debt_policy_fund = ?,
         debt_credit_loan = ?,
         debt_secondary_loan = ?,
         debt_card_loan = ?
       WHERE id = ?
     `).run(
-      debt,
+      total_debt,
+      total_debt,
       debt_policy_fund || 0,
       debt_credit_loan || 0,
       debt_secondary_loan || 0,
       debt_card_loan || 0,
       clientId
     );
-
-    db.close();
 
     return NextResponse.json({
       success: true,
