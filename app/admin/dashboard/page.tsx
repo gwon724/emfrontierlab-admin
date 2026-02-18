@@ -101,6 +101,16 @@ export default function AdminDashboard() {
   });
   const [savingDebt, setSavingDebt] = useState(false);
 
+  // 계정 관리 (아이디/비밀번호 변경)
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountClient, setAccountClient] = useState<any>(null);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const CLIENT_REGISTER_URL = process.env.NEXT_PUBLIC_CLIENT_SITE_URL
     ? `${process.env.NEXT_PUBLIC_CLIENT_SITE_URL}/client/register`
     : 'https://emfrontierlab.vercel.app/client/register';
@@ -639,6 +649,78 @@ export default function AdminDashboard() {
     finally { setSavingDebt(false); }
   };
 
+  // 계정 관리 모달 열기
+  const openAccountModal = (client: any) => {
+    setAccountClient(client);
+    setNewEmail(client.email || '');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setShowPassword(false);
+    setShowAccountModal(true);
+  };
+
+  // 이메일(아이디) 변경
+  const handleSaveEmail = async () => {
+    if (!accountClient) return;
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      alert('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+    setSavingEmail(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/update-client-email', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: accountClient.id, email: newEmail })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setAccountClient((prev: any) => ({ ...prev, email: newEmail }));
+        if (selectedClient?.id === accountClient.id) {
+          setSelectedClient((prev: any) => ({ ...prev, email: newEmail }));
+        }
+        fetchData();
+        alert(`✅ 이메일(아이디)이 변경되었습니다.\n새 아이디: ${newEmail}`);
+      } else {
+        alert(d.error || '이메일 변경 실패');
+      }
+    } catch { alert('저장 중 오류가 발생했습니다.'); }
+    finally { setSavingEmail(false); }
+  };
+
+  // 비밀번호 변경
+  const handleSavePassword = async () => {
+    if (!accountClient) return;
+    if (!newPassword || newPassword.length < 6) {
+      alert('비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!confirm(`${accountClient.name}님의 비밀번호를 변경하시겠습니까?`)) return;
+    setSavingPassword(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/reset-client-password', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: accountClient.id, newPassword })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setNewPassword('');
+        setConfirmNewPassword('');
+        alert(`✅ 비밀번호가 변경되었습니다.\n클라이언트: ${accountClient.name} (${accountClient.email})`);
+      } else {
+        alert(d.error || '비밀번호 변경 실패');
+      }
+    } catch { alert('저장 중 오류가 발생했습니다.'); }
+    finally { setSavingPassword(false); }
+  };
+
   const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
     const currentIndex = STATUS_LIST.indexOf(currentStatus as StatusType);
     const nextStatus = STATUS_LIST[(currentIndex + 1) % STATUS_LIST.length];
@@ -861,6 +943,12 @@ export default function AdminDashboard() {
                               className="px-3 py-1.5 bg-orange-500 text-white text-xs rounded-lg hover:bg-orange-600 font-medium transition-colors"
                             >
                               🗂️ 파일보관함
+                            </button>
+                            <button
+                              onClick={() => openAccountModal(client)}
+                              className="px-3 py-1.5 bg-gray-700 text-white text-xs rounded-lg hover:bg-gray-800 font-medium transition-colors"
+                            >
+                              🔐 계정관리
                             </button>
                           </div>
                         </div>
@@ -1335,6 +1423,12 @@ export default function AdminDashboard() {
                   className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors text-sm"
                 >
                   💳 재무정보 수정
+                </button>
+                <button
+                  onClick={() => openAccountModal(selectedClient)}
+                  className="flex-1 py-2.5 bg-gray-700 text-white rounded-xl font-bold hover:bg-gray-800 transition-colors text-sm"
+                >
+                  🔐 계정 관리
                 </button>
               </div>
               <div className="flex gap-2">
@@ -2051,6 +2145,144 @@ export default function AdminDashboard() {
                 }`}
               >
                 {savingDebt ? '저장 중...' : '💾 저장 & SOHO 재계산'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 계정 관리 모달 (아이디/비밀번호 변경) ===== */}
+      {showAccountModal && accountClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[80]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-700 to-gray-800 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-xl">🔐</div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">계정 관리</h3>
+                  <p className="text-xs text-gray-300">{accountClient.name} · 아이디/비밀번호 변경</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAccountModal(false)} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6">
+              {/* 현재 계정 정보 */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-xs font-bold text-blue-700 mb-2">📋 현재 계정 정보</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">이름</span>
+                    <span className="text-sm font-semibold text-gray-800">{accountClient.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">현재 아이디(이메일)</span>
+                    <span className="text-sm font-semibold text-blue-700">{accountClient.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">가입일</span>
+                    <span className="text-sm text-gray-600">{new Date(accountClient.created_at).toLocaleDateString('ko-KR')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 아이디(이메일) 변경 */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">@</span>
+                  아이디(이메일) 변경
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    placeholder="새 이메일 입력"
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={handleSaveEmail}
+                    disabled={savingEmail || newEmail === accountClient.email}
+                    className={`px-4 py-2.5 rounded-lg font-bold text-sm transition-colors whitespace-nowrap ${
+                      savingEmail || newEmail === accountClient.email
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {savingEmail ? '저장중...' : '변경'}
+                  </button>
+                </div>
+                {newEmail !== accountClient.email && newEmail && (
+                  <p className="text-xs text-orange-600 mt-1">⚠️ 변경 시 클라이언트는 새 이메일로 로그인해야 합니다.</p>
+                )}
+              </div>
+
+              {/* 비밀번호 변경 */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <span className="w-6 h-6 bg-gray-100 text-gray-700 rounded-full flex items-center justify-center text-xs font-bold">🔑</span>
+                  비밀번호 변경
+                </p>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="새 비밀번호 (최소 6자)"
+                      className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmNewPassword}
+                    onChange={e => setConfirmNewPassword(e.target.value)}
+                    placeholder="비밀번호 확인"
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 outline-none ${
+                      confirmNewPassword && newPassword !== confirmNewPassword
+                        ? 'border-red-400 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-gray-500'
+                    }`}
+                  />
+                  {confirmNewPassword && newPassword !== confirmNewPassword && (
+                    <p className="text-xs text-red-500">❌ 비밀번호가 일치하지 않습니다.</p>
+                  )}
+                  {confirmNewPassword && newPassword === confirmNewPassword && newPassword.length >= 6 && (
+                    <p className="text-xs text-green-600">✅ 비밀번호가 일치합니다.</p>
+                  )}
+                  <button
+                    onClick={handleSavePassword}
+                    disabled={savingPassword || !newPassword || newPassword !== confirmNewPassword || newPassword.length < 6}
+                    className={`w-full py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                      savingPassword || !newPassword || newPassword !== confirmNewPassword || newPassword.length < 6
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-800 text-white hover:bg-gray-900'
+                    }`}
+                  >
+                    {savingPassword ? '변경 중...' : '🔑 비밀번호 변경'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-5">
+              <button
+                onClick={() => setShowAccountModal(false)}
+                className="w-full py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              >
+                닫기
               </button>
             </div>
           </div>
