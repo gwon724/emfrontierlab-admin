@@ -46,7 +46,7 @@ export interface DiagnosisResult {
 const POLICY_FUNDS_DETAILS: { [key: string]: Omit<PolicyFund, 'name'> } = {
   '소진공 취약소상공인자금': {
     category: '소진공',
-    max_amount: 70000000,
+    max_amount: 30000000,
     interest_rate: '2.0%',
     requirements: 'NICE 신용점수 839점 이하'
   },
