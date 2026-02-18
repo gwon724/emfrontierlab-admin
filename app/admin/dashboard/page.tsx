@@ -118,6 +118,18 @@ export default function AdminDashboard() {
   // 고객정보 보고서 관련 state
   const [showClientInfoReport, setShowClientInfoReport] = useState(false);
 
+  // 부채 자동 합산 useEffect
+  useEffect(() => {
+    const totalDebt = (debtData.debt_policy_fund || 0) + 
+                      (debtData.debt_credit_loan || 0) + 
+                      (debtData.debt_secondary_loan || 0) + 
+                      (debtData.debt_card_loan || 0);
+    
+    if (totalDebt !== debtData.total_debt) {
+      setDebtData(prev => ({...prev, total_debt: totalDebt}));
+    }
+  }, [debtData.debt_policy_fund, debtData.debt_credit_loan, debtData.debt_secondary_loan, debtData.debt_card_loan]);
+
   useEffect(() => {
     fetchData();
     // 5초마다 자동 새로고침 (실시간 반영)
@@ -1881,14 +1893,17 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      총 부채 *
+                      총 부채 (자동 합산)
                     </label>
                     <input
-                      type="number"
-                      value={debtData.total_debt}
-                      onChange={(e) => setDebtData({...debtData, total_debt: parseInt(e.target.value) || 0})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      type="text"
+                      value={debtData.total_debt.toLocaleString()}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-800 font-semibold"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 정책자금 + 신용대출 + 2금융권 + 카드론 자동 합산
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
