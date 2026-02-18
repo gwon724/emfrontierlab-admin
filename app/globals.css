@@ -18,7 +18,7 @@ body {
 
 /* 워터마크 스타일 */
 .watermark {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -27,6 +27,11 @@ body {
   z-index: 0;
   width: 600px;
   height: 600px;
+}
+
+/* 전체 페이지 워터마크용 */
+body > .watermark {
+  position: fixed;
 }
 
 .watermark img {
