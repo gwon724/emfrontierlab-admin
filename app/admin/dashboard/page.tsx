@@ -41,6 +41,8 @@ export default function AdminDashboard() {
   });
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const [showEditFinancialModal, setShowEditFinancialModal] = useState(false);
+  const [editFinancialLink, setEditFinancialLink] = useState('');
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newClientData, setNewClientData] = useState({
     email: '',
@@ -675,6 +677,20 @@ export default function AdminDashboard() {
     const link = `${baseUrl}/share/${selectedClient.id}`;
     setShareLink(link);
     setShowShareModal(true);
+  };
+
+  // 부채 수정 링크 생성
+  const handleGenerateEditFinancialLink = () => {
+    const baseUrl = window.location.origin.replace('3001', '3000'); // 클라이언트 사이트 URL
+    const link = `${baseUrl}/client/edit-financial/${selectedClient.id}`;
+    setEditFinancialLink(link);
+    setShowEditFinancialModal(true);
+  };
+
+  // 부채 수정 링크 복사
+  const handleCopyEditFinancialLink = () => {
+    navigator.clipboard.writeText(editFinancialLink);
+    alert('부채 수정 링크가 복사되었습니다! 고객에게 전달하세요.');
   };
 
   // 클립보드에 복사
@@ -1809,29 +1825,42 @@ export default function AdminDashboard() {
                 <h4 className="text-lg font-semibold text-gray-800">
                   💰 재무 정보
                 </h4>
-                {!editingDebt ? (
-                  <button
-                    onClick={handleStartEditDebt}
-                    className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                  >
-                    ✏️ 수정
-                  </button>
-                ) : (
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
+                  {!editingDebt && (
                     <button
-                      onClick={handleCancelEditDebt}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                      onClick={handleGenerateEditFinancialLink}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
                     >
-                      취소
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      고객 수정 링크
                     </button>
+                  )}
+                  {!editingDebt ? (
                     <button
-                      onClick={handleSaveDebt}
+                      onClick={handleStartEditDebt}
                       className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
                     >
-                      저장
+                      ✏️ 수정
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCancelEditDebt}
+                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleSaveDebt}
+                        className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                      >
+                        저장
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {!editingDebt ? (
@@ -4090,6 +4119,95 @@ export default function AdminDashboard() {
                   setFinancialResult(null);
                 }}
                 className="w-full py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 부채 수정 링크 모달 */}
+      {showEditFinancialModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b">
+              <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                고객 재무정보 수정 링크
+              </h3>
+              <button
+                onClick={() => setShowEditFinancialModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* 안내 메시지 */}
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-blue-900 mb-2">이 링크를 고객에게 전달하세요</p>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>✅ 고객이 직접 연매출, 업력, 부채 정보를 수정할 수 있습니다</li>
+                      <li>✅ 수정된 정보는 즉시 시스템에 반영됩니다</li>
+                      <li>✅ 카카오톡, 이메일 등으로 링크를 전송하세요</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* 링크 표시 */}
+              <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">고객 수정 링크</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editFinancialLink}
+                    readOnly
+                    className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg font-mono text-sm text-gray-700"
+                  />
+                  <button
+                    onClick={handleCopyEditFinancialLink}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    복사
+                  </button>
+                </div>
+              </div>
+
+              {/* 고객 정보 */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">대상 고객</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-bold">{selectedClient.name?.[0]}</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{selectedClient.name}</p>
+                    <p className="text-sm text-gray-600">{selectedClient.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 버튼 */}
+              <button
+                onClick={() => setShowEditFinancialModal(false)}
+                className="w-full py-3 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
               >
                 닫기
               </button>
