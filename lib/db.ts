@@ -143,12 +143,14 @@ export function initDatabase() {
   `);
 
   // 기본 어드민 계정 생성
-  const adminPassword = bcrypt.hashSync('admin123', 10);
+  const adminPassword = bcrypt.hashSync('skc07245', 10);
   
-  const existingAdmin = database.prepare('SELECT * FROM admins WHERE email = ?').get('admin@emfrontier.com');
+  const existingAdmin = database.prepare('SELECT * FROM admins WHERE email = ?').get('son713119@naver.com');
   if (!existingAdmin) {
+    // 구 계정이 있으면 삭제 후 신규 계정 생성
+    database.prepare('DELETE FROM admins WHERE email = ?').run('admin@emfrontier.com');
     database.prepare('INSERT INTO admins (email, password, name) VALUES (?, ?, ?)').run(
-      'admin@emfrontier.com',
+      'son713119@naver.com',
       adminPassword,
       '관리자'
     );
