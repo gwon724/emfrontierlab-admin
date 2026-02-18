@@ -75,6 +75,15 @@ export default function AdminDashboard() {
   const [companyAnalysisData, setCompanyAnalysisData] = useState<any>(null);
   const [loadingCompanyAnalysis, setLoadingCompanyAnalysis] = useState(false);
 
+  // 신용점수 편집
+  const [editingCredit, setEditingCredit] = useState(false);
+  const [editKcb, setEditKcb] = useState('');
+  const [editNice, setEditNice] = useState('');
+  const [savingCredit, setSavingCredit] = useState(false);
+
+  // AI 정책자금 재분석
+  const [reanalyzingFunds, setReanalyzingFunds] = useState(false);
+
   const CLIENT_REGISTER_URL = process.env.NEXT_PUBLIC_CLIENT_SITE_URL
     ? `${process.env.NEXT_PUBLIC_CLIENT_SITE_URL}/client/register`
     : 'https://emfrontierlab.vercel.app/client/register';
@@ -366,6 +375,61 @@ export default function AdminDashboard() {
       else alert(d.error || '분석 실패');
     } catch { alert('오류 발생'); }
     finally { setLoadingFundEval(false); }
+  };
+
+  // 신용점수 수정
+  const handleSaveCreditScore = async () => {
+    if (!selectedClient) return;
+    if (!editKcb && !editNice) { alert('수정할 점수를 입력해주세요.'); return; }
+    setSavingCredit(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const body: any = { clientId: selectedClient.id };
+      if (editKcb) body.kcb_score = parseInt(editKcb);
+      if (editNice) body.nice_score = parseInt(editNice);
+      const res = await fetch('/api/admin/update-credit-score', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setSelectedClient((prev: any) => ({
+          ...prev,
+          kcb_score: d.kcb_score,
+          nice_score: d.nice_score,
+          soho_grade: d.soho_grade,
+        }));
+        setEditingCredit(false);
+        setEditKcb('');
+        setEditNice('');
+        fetchData();
+        alert(`✅ 신용점수 업데이트 완료\nKCB: ${d.kcb_score}점 / NICE: ${d.nice_score}점\nSOHO등급 자동 재계산: ${d.soho_grade}등급`);
+      } else {
+        alert(d.error || '업데이트 실패');
+      }
+    } catch { alert('오류가 발생했습니다.'); }
+    finally { setSavingCredit(false); }
+  };
+
+  // AI 정책자금 재분석
+  const handleReanalyzeFunds = async (client: any) => {
+    setReanalyzingFunds(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/evaluate-funds', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setFundEvalData(d);
+        setShowFundEval(true);
+        setFundFilter('all');
+      } else alert(d.error || '재분석 실패');
+    } catch { alert('오류 발생'); }
+    finally { setReanalyzingFunds(false); }
   };
 
   // AI 기업집중분석
@@ -748,23 +812,73 @@ export default function AdminDashboard() {
                   <div><label className="text-xs text-gray-500">가입일</label><p className="font-semibold text-gray-900 text-sm">{new Date(selectedClient.created_at).toLocaleString('ko-KR')}</p></div>
                 </div>
                 <div className="p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
-                  <label className="text-xs font-semibold text-gray-600 mb-2 block">🏆 신용 등급 및 점수</label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500">SOHO</span>
-                      <span className="px-3 py-1 bg-green-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.soho_grade}등급</span>
-                    </div>
-                    <div className="w-px h-6 bg-gray-300" />
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500">KCB</span>
-                      <span className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.kcb_score || '-'}점</span>
-                    </div>
-                    <div className="w-px h-6 bg-gray-300" />
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-gray-500">NICE</span>
-                      <span className="px-3 py-1 bg-purple-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.nice_score}점</span>
-                    </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-600">🏆 신용 등급 및 점수</label>
+                    <button
+                      onClick={() => {
+                        setEditingCredit(!editingCredit);
+                        setEditKcb(selectedClient.kcb_score?.toString() || '');
+                        setEditNice(selectedClient.nice_score?.toString() || '');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${editingCredit ? 'bg-gray-200 text-gray-700' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                    >
+                      {editingCredit ? '취소' : '✏️ 점수 수정'}
+                    </button>
                   </div>
+
+                  {!editingCredit ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">SOHO</span>
+                        <span className="px-3 py-1 bg-green-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.soho_grade}등급</span>
+                      </div>
+                      <div className="w-px h-6 bg-gray-300" />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">KCB</span>
+                        <span className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.kcb_score || '-'}점</span>
+                      </div>
+                      <div className="w-px h-6 bg-gray-300" />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">NICE</span>
+                        <span className="px-3 py-1 bg-purple-600 text-white rounded-lg font-bold text-base shadow">{selectedClient.nice_score}점</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-orange-600 font-medium mb-2">⚠️ 수정 후 SOHO 등급이 자동 재계산됩니다.</p>
+                      <div className="flex gap-2 items-center">
+                        <label className="text-xs font-semibold text-blue-700 w-12 flex-shrink-0">KCB</label>
+                        <input
+                          type="number"
+                          value={editKcb}
+                          onChange={(e) => setEditKcb(e.target.value)}
+                          placeholder={`현재: ${selectedClient.kcb_score || '미입력'}점`}
+                          min={0} max={1000}
+                          className="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                        <span className="text-xs text-gray-400">/ 1000점</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <label className="text-xs font-semibold text-purple-700 w-12 flex-shrink-0">NICE</label>
+                        <input
+                          type="number"
+                          value={editNice}
+                          onChange={(e) => setEditNice(e.target.value)}
+                          placeholder={`현재: ${selectedClient.nice_score || '미입력'}점`}
+                          min={0} max={1000}
+                          className="flex-1 px-3 py-1.5 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <span className="text-xs text-gray-400">/ 1000점</span>
+                      </div>
+                      <button
+                        onClick={handleSaveCreditScore}
+                        disabled={savingCredit}
+                        className={`w-full py-2 rounded-lg text-sm font-bold transition-colors mt-1 ${savingCredit ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-800 text-white hover:bg-gray-900'}`}
+                      >
+                        {savingCredit ? '저장 중...' : '💾 신용점수 저장 & SOHO 재계산'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -999,28 +1113,29 @@ export default function AdminDashboard() {
 
             {/* 하단 버튼 */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 print-hide rounded-b-2xl">
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => handleOpenFundEval(selectedClient)}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors text-sm"
+                  onClick={() => handleReanalyzeFunds(selectedClient)}
+                  disabled={reanalyzingFunds}
+                  className={`flex-1 py-3 rounded-xl font-bold transition-colors text-sm min-w-[120px] ${reanalyzingFunds ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
-                  🏦 AI 정책자금 분석
+                  {reanalyzingFunds ? '⏳ 분석중...' : '🔄 AI 정책자금 재분석'}
                 </button>
                 <button
                   onClick={() => handleOpenCompanyAnalysis(selectedClient)}
-                  className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors text-sm"
+                  className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors text-sm min-w-[120px]"
                 >
                   📊 AI 기업집중분석
                 </button>
                 <button
-                  onClick={() => { setShowClientDetail(false); setSelectedClient(null); setEditingFunds(false); }}
-                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm"
+                  onClick={() => { setShowClientDetail(false); setSelectedClient(null); setEditingFunds(false); setEditingCredit(false); }}
+                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm min-w-[80px]"
                 >
                   닫기
                 </button>
                 <button
                   onClick={() => handleDeleteClient(selectedClient)}
-                  className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
+                  className="px-5 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
                 >
                   🗑️ 삭제
                 </button>
@@ -1261,138 +1376,261 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ===== AI 기업집중분석 모달 ===== */}
+      {/* ===== AI 기업집중분석 모달 (상세 보고서 + PDF/프린트) ===== */}
       {showCompanyAnalysis && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[94vh] flex flex-col">
+
+            {/* 헤더 (화면용) */}
+            <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl print:hidden">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
                   <span className="text-xl">📊</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">AI 기업집중분석</h3>
-                  <p className="text-xs text-gray-500">{companyAnalysisData?.clientName || selectedClient?.name}님 · 매출·기대출·직원수·업력 종합</p>
+                  <h3 className="text-lg font-bold text-gray-900">AI 기업집중분석 보고서</h3>
+                  <p className="text-xs text-gray-500">{companyAnalysisData?.clientName || selectedClient?.name} · {companyAnalysisData?.analysis?.reportDate}</p>
                 </div>
               </div>
-              <button onClick={() => setShowCompanyAnalysis(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex gap-2">
+                {companyAnalysisData?.analysis && (
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    PDF/인쇄
+                  </button>
+                )}
+                <button onClick={() => setShowCompanyAnalysis(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className="p-6">
+            {/* 스크롤 콘텐츠 */}
+            <div className="flex-1 overflow-y-auto" id="company-analysis-print">
               {loadingCompanyAnalysis ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
-                  <p className="text-gray-600 font-medium">기업 데이터를 종합 분석 중...</p>
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-14 h-14 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-gray-600 font-semibold">AI가 기업 데이터를 종합 분석 중입니다...</p>
+                  <p className="text-gray-400 text-sm mt-1">매출 · 부채 · 신용 · 직원수 · 업력 5개 지표 분석</p>
                 </div>
               ) : companyAnalysisData?.analysis ? (
                 (() => {
                   const a = companyAnalysisData.analysis;
+                  const clientName = companyAnalysisData.clientName || selectedClient?.name || '';
                   const gradeColor = (g: string) => {
-                    if (g === 'S') return 'text-purple-700 bg-purple-100';
-                    if (g === 'A') return 'text-green-700 bg-green-100';
-                    if (g === 'B') return 'text-blue-700 bg-blue-100';
-                    if (g === 'C') return 'text-yellow-700 bg-yellow-100';
-                    return 'text-red-700 bg-red-100';
+                    if (g === 'S') return { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300', bar: 'from-purple-500 to-purple-600' };
+                    if (g === 'A') return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300', bar: 'from-green-500 to-green-600' };
+                    if (g === 'B') return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', bar: 'from-blue-500 to-blue-600' };
+                    if (g === 'C') return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300', bar: 'from-yellow-500 to-yellow-600' };
+                    return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300', bar: 'from-red-400 to-red-500' };
                   };
+                  const gc = gradeColor(a.overallGrade);
+
                   return (
-                    <>
-                      {/* 종합 등급 */}
-                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white text-center mb-6">
-                        <p className="text-sm font-medium opacity-80 mb-2">종합 기업 등급</p>
-                        <p className="text-6xl font-black mb-2">{a.overallGrade}</p>
-                        <p className="text-2xl font-bold opacity-90">{a.overallScore}점</p>
-                        <p className="text-sm opacity-75 mt-3">{a.summary}</p>
+                    <div className="p-6 space-y-6">
+
+                      {/* ── 프린트 헤더 (인쇄 시만 표시) ── */}
+                      <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-800">
+                        <h1 className="text-2xl font-black text-gray-900">AI 기업집중분석 보고서</h1>
+                        <p className="text-sm text-gray-600 mt-1">대상: {clientName} · 작성일: {a.reportDate} · EMFRONTIER LAB</p>
                       </div>
 
-                      {/* 4개 항목 분석 */}
-                      <div className="grid grid-cols-2 gap-3 mb-6">
-                        {[
-                          { label: '매출 분석', icon: '💰', data: a.revenueLevel },
-                          { label: '부채 분석', icon: '📉', data: a.debtLevel },
-                          { label: '직원수 분석', icon: '👥', data: a.employeeLevel },
-                          { label: '업력 분석', icon: '📅', data: a.businessAgeLevel },
-                        ].map(({ label, icon, data }) => (
-                          <div key={label} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-bold text-gray-700 flex items-center gap-1">{icon} {label}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${gradeColor(data.grade)}`}>
-                                {data.grade}등급
-                              </span>
+                      {/* ── 종합 등급 배너 ── */}
+                      <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium opacity-75 mb-1">종합 기업 신용·성장 등급</p>
+                            <div className="flex items-baseline gap-3">
+                              <span className="text-7xl font-black leading-none">{a.overallGrade}</span>
+                              <span className="text-3xl font-bold opacity-90">{a.overallScore}점</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                              <div
-                                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
-                                style={{ width: `${data.score}%` }}
-                              />
-                            </div>
-                            <p className="text-xs text-gray-600">{data.comment}</p>
-                            {data.ratio !== undefined && (
-                              <p className="text-xs text-gray-400 mt-1">부채비율: {data.ratio.toFixed(0)}%</p>
-                            )}
+                            <p className="text-sm opacity-75 mt-2">{a.summary}</p>
                           </div>
-                        ))}
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs opacity-60 mb-1">평가 기준</p>
+                            {[
+                              ['매출', '30%'], ['부채비율', '25%'], ['신용도', '20%'],
+                              ['업력', '15%'], ['직원수', '10%'],
+                            ].map(([k, v]) => (
+                              <div key={k} className="flex gap-2 justify-end text-xs opacity-80">
+                                <span>{k}</span><span className="font-bold">{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* 강점 */}
-                      {a.strengths?.length > 0 && (
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-                          <p className="text-sm font-bold text-green-800 mb-2">✅ 강점</p>
-                          <ul className="space-y-1">
-                            {a.strengths.map((s: string, i: number) => (
-                              <li key={i} className="text-sm text-green-700 flex items-start gap-2">
-                                <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>{s}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {/* ── 개요 텍스트 ── */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 bg-gray-800 text-white rounded flex items-center justify-center text-xs">①</span>
+                          보고서 개요 및 분석 요약
+                        </h4>
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{a.executiveSummary}</p>
+                      </div>
 
-                      {/* 약점 */}
-                      {a.weaknesses?.length > 0 && (
-                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                          <p className="text-sm font-bold text-red-800 mb-2">⚠️ 개선 필요</p>
-                          <ul className="space-y-1">
-                            {a.weaknesses.map((w: string, i: number) => (
-                              <li key={i} className="text-sm text-red-700 flex items-start gap-2">
-                                <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>{w}
-                              </li>
-                            ))}
-                          </ul>
+                      {/* ── 5개 지표 상세 분석 ── */}
+                      <div>
+                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 bg-gray-800 text-white rounded flex items-center justify-center text-xs">②</span>
+                          5개 핵심 지표 상세 분석
+                        </h4>
+                        <div className="space-y-4">
+                          {[
+                            { label: '매출 분석', icon: '💰', weight: '30%', data: a.revenueLevel },
+                            { label: '부채(기대출) 분석', icon: '📉', weight: '25%', data: a.debtLevel },
+                            { label: '신용도 분석', icon: '⭐', weight: '20%', data: a.creditLevel },
+                            { label: '업력 분석', icon: '📅', weight: '15%', data: a.businessAgeLevel },
+                            { label: '직원수 분석', icon: '👥', weight: '10%', data: a.employeeLevel },
+                          ].map(({ label, icon, weight, data }) => {
+                            const c = gradeColor(data.grade);
+                            return (
+                              <div key={label} className={`border-2 ${c.border} rounded-xl overflow-hidden`}>
+                                <div className={`${c.bg} px-4 py-3 flex items-center justify-between`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base">{icon}</span>
+                                    <span className={`font-bold text-sm ${c.text}`}>{label}</span>
+                                    <span className="text-xs text-gray-400">(가중치 {weight})</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${c.bg} ${c.text} border ${c.border}`}>{data.grade}등급</span>
+                                    <span className="text-xs font-bold text-gray-600">{data.score}점</span>
+                                  </div>
+                                </div>
+                                <div className="bg-white px-4 py-3">
+                                  <div className="w-full bg-gray-100 rounded-full h-2.5 mb-3">
+                                    <div className={`h-2.5 rounded-full bg-gradient-to-r ${c.bar}`} style={{ width: `${data.score}%` }} />
+                                  </div>
+                                  <p className="text-xs font-semibold text-gray-500 mb-1">{data.comment}</p>
+                                  <p className="text-sm text-gray-700 leading-relaxed">{data.detail}</p>
+                                  {data.ratio !== undefined && data.ratio > 0 && (
+                                    <p className="text-xs text-gray-400 mt-2 font-medium">※ 부채비율: {data.ratio.toFixed(1)}%</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
+                      </div>
 
-                      {/* 제안 */}
-                      {a.suggestions?.length > 0 && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                          <p className="text-sm font-bold text-blue-800 mb-2">💡 전략 제안</p>
-                          <ul className="space-y-1">
-                            {a.suggestions.map((s: string, i: number) => (
-                              <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
-                                <span className="text-blue-500 mt-0.5 flex-shrink-0">{i + 1}.</span>{s}
-                              </li>
-                            ))}
-                          </ul>
+                      {/* ── 리스크 분석 ── */}
+                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-5">
+                        <h4 className="font-bold text-orange-800 mb-3 flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 bg-orange-600 text-white rounded flex items-center justify-center text-xs">③</span>
+                          리스크 분석
+                        </h4>
+                        <ul className="space-y-2">
+                          {a.riskAnalysis?.map((r: string, i: number) => (
+                            <li key={i} className="text-sm text-orange-700 leading-relaxed">{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* ── 강점 / 약점 ── */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                          <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2 text-sm">
+                            <span className="w-6 h-6 bg-green-600 text-white rounded flex items-center justify-center text-xs">④</span>
+                            강점 (Strengths)
+                          </h4>
+                          {a.strengths?.length > 0 ? (
+                            <ul className="space-y-2">
+                              {a.strengths.map((s: string, i: number) => (
+                                <li key={i} className="text-sm text-green-700 flex items-start gap-2 leading-relaxed">
+                                  <span className="text-green-500 mt-0.5 flex-shrink-0 font-bold">✓</span>{s}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : <p className="text-sm text-gray-400">분석된 강점이 없습니다.</p>}
                         </div>
-                      )}
-                    </>
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                          <h4 className="font-bold text-red-800 mb-3 flex items-center gap-2 text-sm">
+                            <span className="w-6 h-6 bg-red-600 text-white rounded flex items-center justify-center text-xs">⑤</span>
+                            약점 (Weaknesses)
+                          </h4>
+                          {a.weaknesses?.length > 0 ? (
+                            <ul className="space-y-2">
+                              {a.weaknesses.map((w: string, i: number) => (
+                                <li key={i} className="text-sm text-red-700 flex items-start gap-2 leading-relaxed">
+                                  <span className="text-red-500 mt-0.5 flex-shrink-0 font-bold">✗</span>{w}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : <p className="text-sm text-gray-400">분석된 약점이 없습니다.</p>}
+                        </div>
+                      </div>
+
+                      {/* ── 전략 제안 ── */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                        <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-xs">⑥</span>
+                          전략 제안 (Action Items)
+                        </h4>
+                        <ul className="space-y-2">
+                          {a.suggestions?.map((s: string, i: number) => (
+                            <li key={i} className="text-sm text-blue-700 leading-relaxed">{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* ── 정책자금 활용 전략 ── */}
+                      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+                        <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2 text-sm">
+                          <span className="w-6 h-6 bg-indigo-600 text-white rounded flex items-center justify-center text-xs">⑦</span>
+                          정책자금 활용 전략 로드맵
+                        </h4>
+                        <p className="text-sm text-indigo-700 leading-relaxed whitespace-pre-line">{a.fundingStrategy}</p>
+                      </div>
+
+                      {/* ── 프린트 푸터 ── */}
+                      <div className="hidden print:block mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-400">
+                        본 보고서는 EMFRONTIER LAB AI 분석 시스템이 {a.reportDate}에 자동 생성한 참고용 자료입니다. 실제 금융 상담은 전문 기관을 통해 진행하시기 바랍니다.
+                      </div>
+
+                    </div>
                   );
                 })()
               ) : (
-                <p className="text-center text-gray-400 py-8">데이터를 불러오지 못했습니다.</p>
+                <div className="flex flex-col items-center justify-center py-16">
+                  <p className="text-gray-400 text-base">데이터를 불러오지 못했습니다.</p>
+                  <button
+                    onClick={() => selectedClient && handleOpenCompanyAnalysis(selectedClient)}
+                    className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+                  >
+                    다시 시도
+                  </button>
+                </div>
               )}
             </div>
 
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-2xl">
-              <button
-                onClick={() => setShowCompanyAnalysis(false)}
-                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
-              >
-                닫기
-              </button>
+            {/* 하단 버튼 */}
+            <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 rounded-b-2xl print:hidden">
+              <div className="flex gap-3">
+                {companyAnalysisData?.analysis && (
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    PDF 저장 / 인쇄
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowCompanyAnalysis(false)}
+                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
             </div>
           </div>
         </div>
