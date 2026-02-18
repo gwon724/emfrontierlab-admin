@@ -239,4 +239,47 @@ body {
   a[href]:after {
     content: none !important;
   }
+
+  /* 고객정보 보고서 프린트 스타일 */
+  #client-info-overlay,
+  #client-info-overlay *,
+  #client-info-container,
+  #client-info-container *,
+  #client-info-content,
+  #client-info-content * {
+    visibility: visible !important;
+  }
+
+  #client-info-overlay {
+    position: static !important;
+    background: white !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #client-info-container {
+    position: static !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  .print-hide {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+  }
 }

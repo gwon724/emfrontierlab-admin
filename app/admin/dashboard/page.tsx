@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5Qrcode } from 'html5-qrcode';
 import QRCode from 'qrcode';
+import ClientInfoReport from '../../../client_info_report';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -102,6 +103,9 @@ export default function AdminDashboard() {
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // 고객정보 보고서 관련 state
+  const [showClientInfoReport, setShowClientInfoReport] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -1160,6 +1164,7 @@ export default function AdminDashboard() {
           email: '',
           password: '',
           name: '',
+          phone: '',
           age: '',
           gender: '남성',
           annual_revenue: '',
@@ -2232,6 +2237,17 @@ export default function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 📊 AI 분석 보고서
+              </button>
+
+              {/* 📄 고객정보 보고서 버튼 */}
+              <button
+                onClick={() => setShowClientInfoReport(true)}
+                className="w-full py-3 px-4 bg-black text-white hover:bg-gray-700 transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                📄 고객정보 보고서
               </button>
 
               {/* 📱 카카오 알림톡 발송 버튼 */}
@@ -3718,6 +3734,14 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 📄 고객정보 보고서 */}
+      {showClientInfoReport && selectedClient && (
+        <ClientInfoReport
+          client={selectedClient}
+          onClose={() => setShowClientInfoReport(false)}
+        />
       )}
 
       <footer className="text-center text-gray-500 text-sm py-6">
