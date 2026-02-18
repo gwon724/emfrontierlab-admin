@@ -3033,8 +3033,8 @@ export default function AdminDashboard() {
 
 {/* 📊 AI 분석 보고서 모달 */}
 {showReportModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto print:bg-white print:block print:p-0">
-    <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl print:max-w-full print:shadow-none print:rounded-none report-page">
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto print:bg-white print:block print:p-0" id="report-modal-overlay">
+    <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl print:max-w-full print:shadow-none print:rounded-none report-page" id="report-modal-container">
       
       {/* 헤더 - Only show on screen, not in print */}
       <div className="sticky top-0 bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-t-2xl z-10 print:hidden" id="report-header">

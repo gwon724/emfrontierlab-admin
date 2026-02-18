@@ -23,34 +23,73 @@ body {
     margin: 15mm 15mm 15mm 15mm;
   }
 
-  body {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-    margin: 0;
-    padding: 0;
+  /* CRITICAL: Hide everything by default */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the report modal and its contents */
+  #report-modal-overlay,
+  #report-modal-overlay *,
+  #report-modal-container,
+  #report-modal-container *,
+  #report-content,
+  #report-content *,
+  .print-page-header,
+  .print-page-header * {
+    visibility: visible !important;
+  }
+
+  /* Reset body and html */
+  body, html {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Make modal overlay take full page */
+  #report-modal-overlay {
+    position: static !important;
+    background: white !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 1 !important;
+  }
+
+  /* Make modal container take full page */
+  #report-modal-container {
+    position: static !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    background: white !important;
   }
 
   /* Hide UI controls */
   .print\:hidden {
     display: none !important;
+    visibility: hidden !important;
   }
 
   .print\:block {
     display: block !important;
+    visibility: visible !important;
   }
 
   .print\:static {
     position: static !important;
-  }
-
-  /* Remove modal overlay */
-  .fixed {
-    position: static !important;
-  }
-
-  /* Remove background overlays */
-  .bg-black.bg-opacity-50 {
-    background: transparent !important;
   }
 
   /* Ensure backgrounds and colors print */
