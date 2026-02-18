@@ -134,14 +134,6 @@ export default function AdminLogin() {
               ← 관리자 홈으로
             </Link>
           </div>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 text-center">
-              <strong>관리자 문의:</strong><br/>
-              연락처: 010-8178-4281<br/>
-              담당자: 권권권
-            </p>
-          </div>
         </div>
       </div>
 
