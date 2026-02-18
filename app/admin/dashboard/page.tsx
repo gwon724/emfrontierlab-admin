@@ -25,6 +25,10 @@ export default function AdminDashboard() {
   const [editingFunds, setEditingFunds] = useState(false);
   const [editedFunds, setEditedFunds] = useState<string[]>([]);
   const [newFundInput, setNewFundInput] = useState('');
+
+  // 정책자금별 개별 상태 관리
+  const [fundStatusEdits, setFundStatusEdits] = useState<Record<string, { status: string; notes: string }>>({});
+  const [savingFundStatus, setSavingFundStatus] = useState<string | null>(null);
   const [showRegisterLinkModal, setShowRegisterLinkModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -265,7 +269,6 @@ export default function AdminDashboard() {
         setEditingFunds(false);
         setNewFundInput('');
         fetchData();
-        // selectedClient 업데이트
         setSelectedClient({
           ...selectedClient,
           policy_funds: editedFunds
@@ -276,6 +279,76 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating policy funds:', error);
       alert('업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 정책자금별 상태 편집 초기화 (모달 열릴 때)
+  const initFundStatusEdits = (client: any) => {
+    const funds: string[] = client.policy_funds || [];
+    const existing: Record<string, { status: string; notes: string }> = {};
+    funds.forEach((fund: string) => {
+      const saved = client.fund_statuses?.[fund];
+      existing[fund] = {
+        status: saved?.status || '접수대기',
+        notes: saved?.notes || ''
+      };
+    });
+    setFundStatusEdits(existing);
+  };
+
+  // 정책자금 개별 상태 저장
+  const handleSaveFundStatus = async (fundName: string) => {
+    const token = localStorage.getItem('adminToken');
+    const edit = fundStatusEdits[fundName];
+    if (!edit) return;
+
+    setSavingFundStatus(fundName);
+    try {
+      const res = await fetch('/api/admin/update-fund-status', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          fundName,
+          status: edit.status,
+          notes: edit.notes
+        })
+      });
+
+      if (res.ok) {
+        // selectedClient의 fund_statuses 즉시 반영
+        const updatedFundStatuses = {
+          ...selectedClient.fund_statuses,
+          [fundName]: { status: edit.status, notes: edit.notes, updated_at: new Date().toISOString() }
+        };
+        setSelectedClient({ ...selectedClient, fund_statuses: updatedFundStatuses });
+        // 목록도 새로고침
+        fetchData();
+      } else {
+        alert('저장에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error saving fund status:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingFundStatus(null);
+    }
+  };
+
+  // 상태 배지 색상
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case '접수대기': return 'bg-gray-100 text-gray-700 border border-gray-300';
+      case '접수완료': return 'bg-blue-100 text-blue-700 border border-blue-300';
+      case '진행중':   return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
+      case '진행완료': return 'bg-green-100 text-green-700 border border-green-300';
+      case '집행완료': return 'bg-purple-100 text-purple-700 border border-purple-300';
+      case '보완':     return 'bg-orange-100 text-orange-700 border border-orange-300';
+      case '반려':     return 'bg-red-100 text-red-700 border border-red-300';
+      default:         return 'bg-gray-100 text-gray-700 border border-gray-300';
     }
   };
 
@@ -421,10 +494,10 @@ export default function AdminDashboard() {
                     NICE점수
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    선택 정책자금 <span className="text-blue-600 font-bold">(갯수)</span>
+                    정책자금별 진행상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
+                    전체상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     가입일
@@ -467,44 +540,28 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {client.policy_funds && client.policy_funds.length > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 bg-blue-600 text-white rounded-full font-bold text-sm">
-                              {client.policy_funds.length}개
-                            </span>
-                            <details className="inline">
-                              <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-800">
-                                보기
-                              </summary>
-                              <div className="mt-2 space-y-1">
-                                {client.policy_funds.map((fund: string, idx: number) => (
-                                  <div key={idx} className="text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                                    {fund}
-                                  </div>
-                                ))}
-                              </div>
-                            </details>
+                          <div className="space-y-1 min-w-[160px]">
+                            {client.policy_funds.map((fund: string, idx: number) => {
+                              const fs = client.fund_statuses?.[fund];
+                              const st = fs?.status || '접수대기';
+                              return (
+                                <div key={idx} className="flex items-center justify-between gap-2">
+                                  <span className="text-xs text-gray-600 truncate max-w-[100px]" title={fund}>{fund}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusBadgeClass(st)}`}>
+                                    {st}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <span className="text-gray-400 text-xs">미선택</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => handleQuickStatusChange(client.id, client.application_status)}
-                          className={`px-3 py-2 rounded text-xs font-semibold cursor-pointer hover:shadow-lg transition-all transform hover:scale-105 ${
-                            client.application_status === '접수대기' ? 'bg-gray-100 text-gray-800 hover:bg-gray-200' :
-                            client.application_status === '접수완료' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
-                            client.application_status === '진행중' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
-                            client.application_status === '진행완료' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
-                            client.application_status === '집행완료' ? 'bg-purple-100 text-purple-800 hover:bg-purple-200' :
-                            client.application_status === '보완' ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' :
-                            client.application_status === '반려' ? 'bg-red-100 text-red-800 hover:bg-red-200' :
-                            'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                          }`}
-                          title="클릭하여 다음 단계로 이동"
-                        >
-                          {client.application_status || '접수대기'} →
-                        </button>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(client.application_status || '접수대기')}`}>
+                          {client.application_status || '접수대기'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(client.created_at).toLocaleDateString('ko-KR')}
@@ -514,24 +571,12 @@ export default function AdminDashboard() {
                           <button
                             onClick={() => {
                               setSelectedClient(client);
+                              initFundStatusEdits(client);
                               setShowClientDetail(true);
                             }}
-                            className="text-green-600 hover:text-green-900 font-medium"
+                            className="px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg hover:bg-gray-900 font-medium transition-colors"
                           >
-                            상세보기
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedClient(client);
-                              setStatusUpdate({
-                                status: client.application_status || '접수대기',
-                                notes: ''
-                              });
-                              setShowStatusModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-900 font-medium"
-                          >
-                            상태변경
+                            상세보기 / 상태관리
                           </button>
                         </div>
                       </td>
@@ -827,111 +872,135 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* 선택한 정책자금 */}
-            {(selectedClient.policy_funds && selectedClient.policy_funds.length > 0) || editingFunds ? (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b">
-                  <h4 className="text-lg font-semibold text-gray-800">
-                    💼 진행 중인 정책자금 <span className="text-blue-600">({editingFunds ? editedFunds.length : (selectedClient.policy_funds?.length || 0)}개)</span>
-                  </h4>
-                  {!editingFunds ? (
-                    <button
-                      onClick={handleStartEditFunds}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                    >
-                      ✏️ 수정
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleCancelEditFunds}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={handleSaveFunds}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
-                      >
-                        저장
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {/* 정책자금별 개별 진행상태 관리 */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                <h4 className="text-lg font-semibold text-gray-800">
+                  💼 정책자금별 진행상태
+                  <span className="ml-2 text-sm font-normal text-blue-600">
+                    ({selectedClient.policy_funds?.length || 0}개)
+                  </span>
+                </h4>
+                <button
+                  onClick={handleStartEditFunds}
+                  className="px-3 py-1.5 bg-gray-700 text-white text-xs rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  ✏️ 자금 목록 수정
+                </button>
+              </div>
 
-                {!editingFunds ? (
-                  <div className="space-y-2">
-                    {selectedClient.policy_funds?.map((fund: string, idx: number) => (
-                      <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                        <span className="font-medium text-gray-800">{fund}</span>
-                        <span className="text-xs text-blue-600 font-semibold">진행중</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
+              {/* 자금 목록 편집 모드 */}
+              {editingFunds && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                  <p className="text-xs font-semibold text-yellow-700 mb-3">📝 자금 목록 편집 모드</p>
+                  <div className="space-y-2 mb-3">
                     {editedFunds.map((fund: string, idx: number) => (
-                      <div key={idx} className="p-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
-                        <span className="font-medium text-gray-800">{fund}</span>
+                      <div key={idx} className="flex items-center justify-between bg-white border border-gray-200 rounded px-3 py-2">
+                        <span className="text-sm font-medium text-gray-800">{fund}</span>
                         <button
                           onClick={() => handleRemoveFund(idx)}
-                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
-                        >
-                          제거
-                        </button>
+                          className="text-red-500 hover:text-red-700 text-xs font-semibold"
+                        >✕ 제거</button>
                       </div>
                     ))}
-                    
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newFundInput}
-                        onChange={(e) => setNewFundInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddFund()}
-                        placeholder="새 정책자금 이름 입력..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <button
-                        onClick={handleAddFund}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        추가
-                      </button>
-                    </div>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                선택한 정책자금이 없습니다.
-              </div>
-            )}
-
-            {/* 진행 상태 */}
-            {selectedClient.application_status && (
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 pb-2 border-b">
-                  📊 진행 상태
-                </h4>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">현재 상태</span>
-                    <span className={`px-3 py-1 rounded text-sm font-semibold ${
-                      selectedClient.application_status === '접수대기' ? 'bg-gray-100 text-gray-800' :
-                      selectedClient.application_status === '접수완료' ? 'bg-blue-100 text-blue-800' :
-                      selectedClient.application_status === '진행중' ? 'bg-yellow-100 text-yellow-800' :
-                      selectedClient.application_status === '진행완료' ? 'bg-green-100 text-green-800' :
-                      selectedClient.application_status === '집행완료' ? 'bg-purple-100 text-purple-800' :
-                      selectedClient.application_status === '보완' ? 'bg-orange-100 text-orange-800' :
-                      selectedClient.application_status === '반려' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {selectedClient.application_status}
-                    </span>
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newFundInput}
+                      onChange={(e) => setNewFundInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddFund()}
+                      placeholder="새 정책자금 이름..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                    <button onClick={handleAddFund} className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">추가</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleCancelEditFunds} className="flex-1 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">취소</button>
+                    <button onClick={handleSaveFunds} className="flex-1 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 font-semibold">저장</button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* 정책자금별 상태 카드 목록 */}
+              {selectedClient.policy_funds && selectedClient.policy_funds.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedClient.policy_funds.map((fund: string) => {
+                    const edit = fundStatusEdits[fund] || { status: '접수대기', notes: '' };
+                    const saved = selectedClient.fund_statuses?.[fund];
+                    const isSaving = savingFundStatus === fund;
+
+                    return (
+                      <div key={fund} className="border border-gray-200 rounded-xl overflow-hidden">
+                        {/* 자금명 + 현재 저장된 상태 배지 */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                          <span className="font-semibold text-gray-800 text-sm">{fund}</span>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getStatusBadgeClass(saved?.status || '접수대기')}`}>
+                            {saved?.status || '접수대기'}
+                          </span>
+                        </div>
+
+                        {/* 상태 변경 영역 */}
+                        <div className="px-4 py-3 bg-white">
+                          <div className="flex gap-2 items-center mb-2">
+                            <label className="text-xs font-medium text-gray-500 w-12 flex-shrink-0">상태</label>
+                            <select
+                              value={edit.status}
+                              onChange={(e) => setFundStatusEdits(prev => ({
+                                ...prev,
+                                [fund]: { ...prev[fund], status: e.target.value }
+                              }))}
+                              className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                              <option value="접수대기">⬜ 접수대기</option>
+                              <option value="접수완료">🔵 접수완료</option>
+                              <option value="진행중">🟡 진행중</option>
+                              <option value="진행완료">🟢 진행완료</option>
+                              <option value="집행완료">🟣 집행완료</option>
+                              <option value="보완">🟠 보완</option>
+                              <option value="반려">🔴 반려</option>
+                            </select>
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            <label className="text-xs font-medium text-gray-500 w-12 flex-shrink-0 mt-1.5">메모</label>
+                            <input
+                              type="text"
+                              value={edit.notes}
+                              onChange={(e) => setFundStatusEdits(prev => ({
+                                ...prev,
+                                [fund]: { ...prev[fund], notes: e.target.value }
+                              }))}
+                              placeholder="메모 (선택사항)"
+                              className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                            <button
+                              onClick={() => handleSaveFundStatus(fund)}
+                              disabled={isSaving}
+                              className={`px-3 py-1.5 text-sm rounded-lg font-semibold transition-colors whitespace-nowrap ${
+                                isSaving
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-gray-800 text-white hover:bg-gray-900'
+                              }`}
+                            >
+                              {isSaving ? '저장중...' : '저장'}
+                            </button>
+                          </div>
+                          {saved?.updated_at && (
+                            <p className="text-xs text-gray-400 mt-2 ml-14">
+                              마지막 수정: {new Date(saved.updated_at).toLocaleString('ko-KR')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500 text-sm">
+                  선택한 정책자금이 없습니다.
+                </div>
+              )}
+            </div>
 
             {/* 닫기 버튼 */}
             <button

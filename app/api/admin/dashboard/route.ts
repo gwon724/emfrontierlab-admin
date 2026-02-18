@@ -31,11 +31,25 @@ export async function GET(request: NextRequest) {
       ORDER BY c.created_at DESC
     `).all();
 
-    // policy_funds와 fund_amounts JSON 파싱
+    // 모든 정책자금별 상태 조회
+    const allFundStatuses = db.prepare(`
+      SELECT client_id, fund_name, status, notes, updated_at
+      FROM fund_statuses
+    `).all() as { client_id: number; fund_name: string; status: string; notes: string; updated_at: string }[];
+
+    // clientId → { fundName → { status, notes, updated_at } } 맵 생성
+    const fundStatusMap: Record<number, Record<string, { status: string; notes: string; updated_at: string }>> = {};
+    allFundStatuses.forEach(({ client_id, fund_name, status, notes, updated_at }) => {
+      if (!fundStatusMap[client_id]) fundStatusMap[client_id] = {};
+      fundStatusMap[client_id][fund_name] = { status, notes, updated_at };
+    });
+
+    // policy_funds와 fund_amounts JSON 파싱 + fund_statuses 병합
     const parsedClients = (clients as any[]).map((client: any) => ({
       ...client,
       policy_funds: client.policy_funds ? JSON.parse(client.policy_funds) : [],
-      fund_amounts: client.fund_amounts ? JSON.parse(client.fund_amounts) : {}
+      fund_amounts: client.fund_amounts ? JSON.parse(client.fund_amounts) : {},
+      fund_statuses: fundStatusMap[client.id] || {}
     }));
 
     // 상태별 카운트
