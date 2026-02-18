@@ -64,6 +64,17 @@ export default function AdminDashboard() {
   const [overallStatusEdit, setOverallStatusEdit] = useState('접수대기');
   const [savingOverallStatus, setSavingOverallStatus] = useState(false);
 
+  // AI 정책자금 분석
+  const [showFundEval, setShowFundEval] = useState(false);
+  const [fundEvalData, setFundEvalData] = useState<any>(null);
+  const [loadingFundEval, setLoadingFundEval] = useState(false);
+  const [fundFilter, setFundFilter] = useState<'all'|'eligible'|'ineligible'>('all');
+
+  // AI 기업집중분석
+  const [showCompanyAnalysis, setShowCompanyAnalysis] = useState(false);
+  const [companyAnalysisData, setCompanyAnalysisData] = useState<any>(null);
+  const [loadingCompanyAnalysis, setLoadingCompanyAnalysis] = useState(false);
+
   const CLIENT_REGISTER_URL = process.env.NEXT_PUBLIC_CLIENT_SITE_URL
     ? `${process.env.NEXT_PUBLIC_CLIENT_SITE_URL}/client/register`
     : 'https://emfrontierlab.vercel.app/client/register';
@@ -337,6 +348,68 @@ export default function AdminDashboard() {
     setShowClientDetail(true);
   };
 
+  // AI 정책자금 평가
+  const handleOpenFundEval = async (client: any) => {
+    setSelectedClient(client);
+    setShowFundEval(true);
+    setFundEvalData(null);
+    setLoadingFundEval(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/evaluate-funds', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id })
+      });
+      const d = await res.json();
+      if (res.ok) setFundEvalData(d);
+      else alert(d.error || '분석 실패');
+    } catch { alert('오류 발생'); }
+    finally { setLoadingFundEval(false); }
+  };
+
+  // AI 기업집중분석
+  const handleOpenCompanyAnalysis = async (client: any) => {
+    setSelectedClient(client);
+    setShowCompanyAnalysis(true);
+    setCompanyAnalysisData(null);
+    setLoadingCompanyAnalysis(true);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/company-analysis', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id })
+      });
+      const d = await res.json();
+      if (res.ok) setCompanyAnalysisData(d);
+      else alert(d.error || '분석 실패');
+    } catch { alert('오류 발생'); }
+    finally { setLoadingCompanyAnalysis(false); }
+  };
+
+  // 클라이언트 삭제
+  const handleDeleteClient = async (client: any) => {
+    if (!confirm(`⚠️ "${client.name}"(${client.email}) 회원을 정말 삭제하시겠습니까?\n\n관련된 모든 데이터(AI 진단, 신청 내역 등)가 영구 삭제됩니다.`)) return;
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch('/api/admin/delete-client', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id })
+      });
+      const d = await res.json();
+      if (res.ok) {
+        alert(`✅ ${d.message}`);
+        setShowClientDetail(false);
+        setSelectedClient(null);
+        fetchData();
+      } else {
+        alert(d.error || '삭제 실패');
+      }
+    } catch { alert('삭제 중 오류가 발생했습니다.'); }
+  };
+
   const handleQuickStatusChange = async (clientId: number, currentStatus: string) => {
     const currentIndex = STATUS_LIST.indexOf(currentStatus as StatusType);
     const nextStatus = STATUS_LIST[(currentIndex + 1) % STATUS_LIST.length];
@@ -528,6 +601,18 @@ export default function AdminDashboard() {
                           className="px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg hover:bg-gray-900 font-medium transition-colors"
                         >
                           상세 / 상태관리
+                        </button>
+                        <button
+                          onClick={() => handleOpenFundEval(client)}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                        >
+                          🏦 정책자금
+                        </button>
+                        <button
+                          onClick={() => handleOpenCompanyAnalysis(client)}
+                          className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                        >
+                          📊 기업분석
                         </button>
                       </td>
                     </tr>
@@ -912,14 +997,34 @@ export default function AdminDashboard() {
 
             </div>{/* /p-6 space-y-6 */}
 
-            {/* 하단 닫기 버튼 */}
+            {/* 하단 버튼 */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 print-hide rounded-b-2xl">
-              <button
-                onClick={() => { setShowClientDetail(false); setSelectedClient(null); setEditingFunds(false); }}
-                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
-              >
-                닫기
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleOpenFundEval(selectedClient)}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors text-sm"
+                >
+                  🏦 AI 정책자금 분석
+                </button>
+                <button
+                  onClick={() => handleOpenCompanyAnalysis(selectedClient)}
+                  className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors text-sm"
+                >
+                  📊 AI 기업집중분석
+                </button>
+                <button
+                  onClick={() => { setShowClientDetail(false); setSelectedClient(null); setEditingFunds(false); }}
+                  className="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors text-sm"
+                >
+                  닫기
+                </button>
+                <button
+                  onClick={() => handleDeleteClient(selectedClient)}
+                  className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
+                >
+                  🗑️ 삭제
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -993,6 +1098,298 @@ export default function AdminDashboard() {
               <button
                 onClick={() => { setShowRegisterLinkModal(false); setLinkCopied(false); }}
                 className="w-full py-2.5 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== AI 정책자금 평가 모달 ===== */}
+      {showFundEval && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
+            {/* 헤더 */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <span className="text-xl">🏦</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">AI 정책자금 평가</h3>
+                  <p className="text-xs text-gray-500">{fundEvalData?.clientName || selectedClient?.name}님 · 조건별 충족 여부 분석</p>
+                </div>
+              </div>
+              <button onClick={() => setShowFundEval(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loadingFundEval ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-gray-600 font-medium">AI가 정책자금 조건을 분석 중...</p>
+                </div>
+              ) : fundEvalData ? (
+                <>
+                  {/* 요약 카드 */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200">
+                      <p className="text-xs text-blue-600 font-semibold mb-1">SOHO 등급</p>
+                      <p className="text-3xl font-black text-blue-700">{fundEvalData.sohoGrade}</p>
+                      <p className="text-xs text-blue-500 mt-1">등급</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200">
+                      <p className="text-xs text-green-600 font-semibold mb-1">최대 한도</p>
+                      <p className="text-lg font-black text-green-700">{(fundEvalData.maxLoanLimit / 100000000).toFixed(1)}억</p>
+                      <p className="text-xs text-green-500 mt-1">{fundEvalData.maxLoanLimit?.toLocaleString()}원</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200">
+                      <p className="text-xs text-purple-600 font-semibold mb-1">추천 자금</p>
+                      <p className="text-3xl font-black text-purple-700">{fundEvalData.funds?.filter((f: any) => f.eligible).length}</p>
+                      <p className="text-xs text-purple-500 mt-1">/ {fundEvalData.funds?.length}개 분석</p>
+                    </div>
+                  </div>
+
+                  {/* 필터 탭 */}
+                  <div className="flex gap-2 mb-4">
+                    {(['all', 'eligible', 'ineligible'] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFundFilter(f)}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                          fundFilter === f ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {f === 'all' ? `전체 (${fundEvalData.funds?.length})` :
+                         f === 'eligible' ? `✅ 충족 (${fundEvalData.funds?.filter((x: any) => x.eligible).length})` :
+                         `❌ 미충족 (${fundEvalData.funds?.filter((x: any) => !x.eligible).length})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 자금별 카드 - 노션 스타일 */}
+                  <div className="space-y-3">
+                    {fundEvalData.funds
+                      ?.filter((fund: any) =>
+                        fundFilter === 'all' ? true :
+                        fundFilter === 'eligible' ? fund.eligible :
+                        !fund.eligible
+                      )
+                      .map((fund: any, idx: number) => (
+                        <div key={idx} className={`border-2 rounded-xl overflow-hidden ${fund.eligible ? 'border-green-300' : 'border-gray-200'}`}>
+                          {/* 자금 헤더 */}
+                          <div className={`flex items-center justify-between px-4 py-3 ${fund.eligible ? 'bg-green-50' : 'bg-gray-50'}`}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">
+                                {fund.category?.includes('중진공') ? '🏢' :
+                                 fund.category?.includes('소진공') ? '🏪' :
+                                 fund.category?.includes('신용보증') ? '🛡️' :
+                                 fund.category?.includes('기술보증') ? '🔬' : '💼'}
+                              </span>
+                              <div>
+                                <p className="font-bold text-gray-900 text-sm">{fund.name}</p>
+                                <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">{fund.category}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 text-right">
+                              <div>
+                                <p className="text-xs text-gray-500">최대 한도</p>
+                                <p className={`font-bold text-sm ${fund.eligible ? 'text-green-700' : 'text-gray-500'}`}>
+                                  {(fund.max_amount / 100000000).toFixed(1) === '0.0'
+                                    ? (fund.max_amount / 10000000).toFixed(0) + '천만'
+                                    : (fund.max_amount / 100000000).toFixed(1) + '억'}원
+                                </p>
+                              </div>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                fund.eligible ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+                              }`}>
+                                {fund.passCount}/{fund.totalCount}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 조건 체크 목록 - 노션 테이블 스타일 */}
+                          <div className="px-4 py-3 bg-white">
+                            <div className="divide-y divide-gray-100">
+                              {fund.conditions?.map((cond: any, ci: number) => (
+                                <div key={ci} className="flex items-center justify-between py-2">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                      cond.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                                    }`}>
+                                      {cond.passed ? '✓' : '✗'}
+                                    </span>
+                                    <span className="text-sm text-gray-700 font-medium">{cond.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-right">
+                                    <div>
+                                      <p className="text-xs text-gray-400">기준</p>
+                                      <p className="text-xs font-semibold text-gray-600">{cond.required}</p>
+                                    </div>
+                                    <div className="w-20">
+                                      <p className="text-xs text-gray-400">실제값</p>
+                                      <p className={`text-xs font-bold ${cond.passed ? 'text-green-600' : 'text-red-500'}`}>{cond.actual}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-gray-400 py-8">데이터를 불러오지 못했습니다.</p>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-2xl">
+              <button
+                onClick={() => setShowFundEval(false)}
+                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== AI 기업집중분석 모달 ===== */}
+      {showCompanyAnalysis && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
+                  <span className="text-xl">📊</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">AI 기업집중분석</h3>
+                  <p className="text-xs text-gray-500">{companyAnalysisData?.clientName || selectedClient?.name}님 · 매출·기대출·직원수·업력 종합</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCompanyAnalysis(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loadingCompanyAnalysis ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-gray-600 font-medium">기업 데이터를 종합 분석 중...</p>
+                </div>
+              ) : companyAnalysisData?.analysis ? (
+                (() => {
+                  const a = companyAnalysisData.analysis;
+                  const gradeColor = (g: string) => {
+                    if (g === 'S') return 'text-purple-700 bg-purple-100';
+                    if (g === 'A') return 'text-green-700 bg-green-100';
+                    if (g === 'B') return 'text-blue-700 bg-blue-100';
+                    if (g === 'C') return 'text-yellow-700 bg-yellow-100';
+                    return 'text-red-700 bg-red-100';
+                  };
+                  return (
+                    <>
+                      {/* 종합 등급 */}
+                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white text-center mb-6">
+                        <p className="text-sm font-medium opacity-80 mb-2">종합 기업 등급</p>
+                        <p className="text-6xl font-black mb-2">{a.overallGrade}</p>
+                        <p className="text-2xl font-bold opacity-90">{a.overallScore}점</p>
+                        <p className="text-sm opacity-75 mt-3">{a.summary}</p>
+                      </div>
+
+                      {/* 4개 항목 분석 */}
+                      <div className="grid grid-cols-2 gap-3 mb-6">
+                        {[
+                          { label: '매출 분석', icon: '💰', data: a.revenueLevel },
+                          { label: '부채 분석', icon: '📉', data: a.debtLevel },
+                          { label: '직원수 분석', icon: '👥', data: a.employeeLevel },
+                          { label: '업력 분석', icon: '📅', data: a.businessAgeLevel },
+                        ].map(({ label, icon, data }) => (
+                          <div key={label} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-bold text-gray-700 flex items-center gap-1">{icon} {label}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-black ${gradeColor(data.grade)}`}>
+                                {data.grade}등급
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                              <div
+                                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
+                                style={{ width: `${data.score}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-600">{data.comment}</p>
+                            {data.ratio !== undefined && (
+                              <p className="text-xs text-gray-400 mt-1">부채비율: {data.ratio.toFixed(0)}%</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* 강점 */}
+                      {a.strengths?.length > 0 && (
+                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                          <p className="text-sm font-bold text-green-800 mb-2">✅ 강점</p>
+                          <ul className="space-y-1">
+                            {a.strengths.map((s: string, i: number) => (
+                              <li key={i} className="text-sm text-green-700 flex items-start gap-2">
+                                <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>{s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* 약점 */}
+                      {a.weaknesses?.length > 0 && (
+                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                          <p className="text-sm font-bold text-red-800 mb-2">⚠️ 개선 필요</p>
+                          <ul className="space-y-1">
+                            {a.weaknesses.map((w: string, i: number) => (
+                              <li key={i} className="text-sm text-red-700 flex items-start gap-2">
+                                <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>{w}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* 제안 */}
+                      {a.suggestions?.length > 0 && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                          <p className="text-sm font-bold text-blue-800 mb-2">💡 전략 제안</p>
+                          <ul className="space-y-1">
+                            {a.suggestions.map((s: string, i: number) => (
+                              <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
+                                <span className="text-blue-500 mt-0.5 flex-shrink-0">{i + 1}.</span>{s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                <p className="text-center text-gray-400 py-8">데이터를 불러오지 못했습니다.</p>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-2xl">
+              <button
+                onClick={() => setShowCompanyAnalysis(false)}
+                className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-900 transition-colors"
               >
                 닫기
               </button>
