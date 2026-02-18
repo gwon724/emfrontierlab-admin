@@ -175,55 +175,98 @@ export function calculateSOHOGrade(client: ClientData): string {
 // 최대 대출 한도 계산 (AI 로직)
 export function calculateMaxLoanLimit(client: ClientData, sohoGrade: string): number {
   const niceScore = client.niceScore || client.nice_score || 0;
+  const kcbScore = client.kcbScore || client.kcb_score || 0;
   const annualRevenue = client.annualRevenue || client.annual_revenue || 0;
   const totalDebt = client.totalDebt || client.total_debt || client.debt || 0;
   const hasTechnology = client.hasTechnology ?? client.has_technology ?? false;
+  const businessYears = client.businessYears ?? client.business_years ?? 0;
   
-  // 기본 한도 (등급별)
-  let baseLimit = 0;
+  // === 1단계: 기본 신용 한도 계산 (신용점수 기반) ===
+  const avgCreditScore = kcbScore > 0 ? (niceScore + kcbScore) / 2 : niceScore;
+  let creditBasedLimit = 0;
+  
+  if (avgCreditScore >= 900) creditBasedLimit = 500000000;      // 5억
+  else if (avgCreditScore >= 850) creditBasedLimit = 400000000; // 4억
+  else if (avgCreditScore >= 800) creditBasedLimit = 300000000; // 3억
+  else if (avgCreditScore >= 750) creditBasedLimit = 200000000; // 2억
+  else if (avgCreditScore >= 700) creditBasedLimit = 150000000; // 1.5억
+  else if (avgCreditScore >= 650) creditBasedLimit = 100000000; // 1억
+  else creditBasedLimit = 50000000;                              // 5천만원
+  
+  // === 2단계: 매출 기반 한도 계산 (연매출의 40-60% 차등 적용) ===
+  let revenueMultiplier = 0.4; // 기본 40%
+  
+  if (avgCreditScore >= 850) revenueMultiplier = 0.6;       // 신용 우수: 60%
+  else if (avgCreditScore >= 800) revenueMultiplier = 0.55; // 신용 양호: 55%
+  else if (avgCreditScore >= 750) revenueMultiplier = 0.5;  // 신용 보통: 50%
+  else if (avgCreditScore >= 700) revenueMultiplier = 0.45; // 신용 주의: 45%
+  
+  const revenueBasedLimit = annualRevenue * revenueMultiplier;
+  
+  // === 3단계: 부채비율 분석 및 한도 조정 ===
+  const debtRatio = annualRevenue > 0 ? (totalDebt / annualRevenue) * 100 : 200;
+  let debtAdjustment = 1.0;
+  
+  if (debtRatio >= 200) debtAdjustment = 0.2;       // 부채비율 200% 이상: 20%만
+  else if (debtRatio >= 150) debtAdjustment = 0.4;  // 150-200%: 40%
+  else if (debtRatio >= 120) debtAdjustment = 0.6;  // 120-150%: 60%
+  else if (debtRatio >= 100) debtAdjustment = 0.7;  // 100-120%: 70%
+  else if (debtRatio >= 80) debtAdjustment = 0.8;   // 80-100%: 80%
+  else if (debtRatio >= 60) debtAdjustment = 0.9;   // 60-80%: 90%
+  else if (debtRatio >= 40) debtAdjustment = 1.0;   // 40-60%: 100%
+  else debtAdjustment = 1.1;                         // 40% 미만: 110% (부채 적음)
+  
+  // === 4단계: 업력 기반 보정 (사업 안정성) ===
+  let businessYearsBonus = 1.0;
+  
+  if (businessYears >= 10) businessYearsBonus = 1.15;      // 10년 이상: +15%
+  else if (businessYears >= 7) businessYearsBonus = 1.1;   // 7-10년: +10%
+  else if (businessYears >= 5) businessYearsBonus = 1.05;  // 5-7년: +5%
+  else if (businessYears >= 3) businessYearsBonus = 1.0;   // 3-5년: 기본
+  else if (businessYears >= 1) businessYearsBonus = 0.9;   // 1-3년: -10%
+  else businessYearsBonus = 0.8;                            // 1년 미만: -20%
+  
+  // === 5단계: 기술력 보정 ===
+  const techBonus = hasTechnology ? 1.15 : 1.0; // 기술력 보유: +15%
+  
+  // === 6단계: SOHO 등급 가중치 ===
+  let gradeWeight = 1.0;
   switch (sohoGrade) {
-    case 'S': baseLimit = 1000000000; break; // 10억
-    case 'A': baseLimit = 700000000; break;  // 7억
-    case 'B': baseLimit = 500000000; break;  // 5억
-    case 'C': baseLimit = 300000000; break;  // 3억
-    case 'D': baseLimit = 100000000; break;  // 1억
-    default: baseLimit = 50000000; break;    // 5천만
+    case 'S': gradeWeight = 1.3; break;  // S등급: +30%
+    case 'A': gradeWeight = 1.2; break;  // A등급: +20%
+    case 'B': gradeWeight = 1.1; break;  // B등급: +10%
+    case 'C': gradeWeight = 1.0; break;  // C등급: 기본
+    case 'D': gradeWeight = 0.85; break; // D등급: -15%
+    default: gradeWeight = 0.7; break;   // 기타: -30%
   }
   
-  // 매출액 기반 한도 (연매출의 50%)
-  const revenueBasedLimit = annualRevenue * 0.5;
+  // === 7단계: 최종 한도 계산 ===
+  // 신용 기반 한도와 매출 기반 한도 중 더 유리한 것 선택
+  let baseLimit = Math.max(creditBasedLimit, revenueBasedLimit);
   
-  // 부채 감안 한도 (총 부채가 연매출의 80% 이하일 때만 전액 제공)
-  const debtRatio = annualRevenue > 0 ? (totalDebt / annualRevenue) * 100 : 100;
-  let debtAdjustment = 1.0;
-  if (debtRatio > 150) debtAdjustment = 0.3;      // 부채비율 150% 초과 시 30%만
-  else if (debtRatio > 100) debtAdjustment = 0.5; // 100~150% 시 50%
-  else if (debtRatio > 80) debtAdjustment = 0.7;  // 80~100% 시 70%
-  else if (debtRatio > 50) debtAdjustment = 0.9;  // 50~80% 시 90%
+  // 모든 보정 계수 적용
+  let finalLimit = baseLimit * debtAdjustment * businessYearsBonus * techBonus * gradeWeight;
   
-  // 신용점수 보정
-  let creditAdjustment = 1.0;
-  if (niceScore >= 900) creditAdjustment = 1.2;       // 우수 +20%
-  else if (niceScore >= 850) creditAdjustment = 1.1;  // 양호 +10%
-  else if (niceScore >= 800) creditAdjustment = 1.0;  // 보통 그대로
-  else if (niceScore >= 750) creditAdjustment = 0.9;  // 주의 -10%
-  else if (niceScore >= 700) creditAdjustment = 0.8;  // 낮음 -20%
-  else creditAdjustment = 0.6;                         // 매우 낮음 -40%
+  // === 8단계: 안전장치 및 반올림 ===
+  // 최소 한도: 3천만원 (영세 사업자 고려)
+  // 최대 한도: 10억원 (정책자금 현실성 고려)
+  finalLimit = Math.max(30000000, Math.min(1000000000, finalLimit));
   
-  // 기술력 보정 (+10%)
-  const techAdjustment = hasTechnology ? 1.1 : 1.0;
+  // 천만원 단위로 반올림 (대출 한도는 보통 큰 단위로 제공)
+  finalLimit = Math.round(finalLimit / 10000000) * 10000000;
   
-  // 최종 한도 계산 (기본 한도와 매출 기반 한도 중 큰 값 선택)
-  let finalLimit = Math.max(baseLimit, revenueBasedLimit);
+  // 로그 출력 (디버깅용)
+  console.log('=== AI 맞춤형 한도 계산 ===');
+  console.log('평균 신용점수:', avgCreditScore);
+  console.log('신용 기반 한도:', creditBasedLimit.toLocaleString());
+  console.log('매출 기반 한도:', revenueBasedLimit.toLocaleString());
+  console.log('부채비율:', debtRatio.toFixed(1) + '%', '/ 조정계수:', debtAdjustment);
+  console.log('업력:', businessYears + '년', '/ 보너스:', businessYearsBonus);
+  console.log('기술력:', hasTechnology ? '보유' : '미보유', '/ 보너스:', techBonus);
+  console.log('SOHO 등급:', sohoGrade, '/ 가중치:', gradeWeight);
+  console.log('최종 한도:', finalLimit.toLocaleString() + '원');
   
-  // 각종 보정 적용
-  finalLimit = finalLimit * debtAdjustment * creditAdjustment * techAdjustment;
-  
-  // 최소 한도 5천만원, 최대 한도 50억원
-  finalLimit = Math.max(50000000, Math.min(5000000000, finalLimit));
-  
-  // 백만원 단위로 반올림
-  return Math.round(finalLimit / 1000000) * 1000000;
+  return finalLimit;
 }
 
 // 정책자금 추천 (AI 로직 - 업력 기반 필터링)
