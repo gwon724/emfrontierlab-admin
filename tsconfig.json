@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "enhanced_report_modal.tsx", "enhanced_report_modal_a4.tsx", "client_info_report.tsx"]
 }

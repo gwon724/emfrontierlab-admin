@@ -25,6 +25,31 @@ export default function AdminDashboard() {
   const [editingFunds, setEditingFunds] = useState(false);
   const [editedFunds, setEditedFunds] = useState<string[]>([]);
   const [newFundInput, setNewFundInput] = useState('');
+  const [showRegisterLinkModal, setShowRegisterLinkModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // 클라이언트 사이트 가입링크 URL (배포 URL로 변경 가능)
+  const CLIENT_REGISTER_URL = process.env.NEXT_PUBLIC_CLIENT_SITE_URL
+    ? `${process.env.NEXT_PUBLIC_CLIENT_SITE_URL}/client/register`
+    : 'https://emfrontierlab.vercel.app/client/register';
+
+  const handleCopyRegisterLink = async () => {
+    try {
+      await navigator.clipboard.writeText(CLIENT_REGISTER_URL);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } catch (err) {
+      // 클립보드 API 미지원 시 fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = CLIENT_REGISTER_URL;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -309,7 +334,17 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold">EMFRONTIER LAB 관리자</h1>
             <p className="text-sm text-gray-300">정책자금 관리 시스템</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {/* 가입링크 버튼 */}
+            <button
+              onClick={() => setShowRegisterLinkModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              가입링크
+            </button>
             <button
               onClick={() => setShowQRScanner(true)}
               className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -908,6 +943,119 @@ export default function AdminDashboard() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 가입링크 모달 */}
+      {showRegisterLinkModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            {/* 모달 헤더 */}
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-5 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">클라이언트 가입링크</h3>
+                  <p className="text-green-100 text-sm">링크를 복사해서 고객에게 전달하세요</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 모달 내용 */}
+            <div className="p-6">
+              {/* 안내 */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+                <div className="flex gap-2">
+                  <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold mb-1">가입링크 안내</p>
+                    <p>고객이 아래 링크로 직접 접속해 회원가입을 완료하면, 가입 정보가 자동으로 관리자 DB에 등록됩니다.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* URL 표시 */}
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">가입 링크 URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={CLIENT_REGISTER_URL}
+                    readOnly
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700 select-all focus:outline-none focus:ring-2 focus:ring-green-500"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={handleCopyRegisterLink}
+                    className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                      linkCopied
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-800 text-white hover:bg-gray-900'
+                    }`}
+                  >
+                    {linkCopied ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        복사완료!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        링크 복사
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* 전송 방법 안내 */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">전달 방법</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm text-gray-700">
+                    <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                    위 링크를 복사하여 카카오톡·문자로 고객에게 전송
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-gray-700">
+                    <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                    고객이 링크 접속 후 회원가입 양식 작성 및 제출
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-gray-700">
+                    <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+                    가입 완료 시 이 대시보드에 자동 등록됨
+                  </div>
+                </div>
+              </div>
+
+              {/* 링크에서 바로 열기 */}
+              <a
+                href={CLIENT_REGISTER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2.5 px-4 border-2 border-green-600 text-green-700 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors mb-3"
+              >
+                🔗 가입 페이지 미리보기
+              </a>
+
+              {/* 닫기 */}
+              <button
+                onClick={() => { setShowRegisterLinkModal(false); setLinkCopied(false); }}
+                className="w-full py-2.5 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

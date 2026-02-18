@@ -28,7 +28,7 @@ export async function PUT(request: NextRequest) {
     // applications 테이블에서 해당 클라이언트의 신청 정보 업데이트
     const application = db.prepare(`
       SELECT id FROM applications WHERE client_id = ? ORDER BY created_at DESC LIMIT 1
-    `).get(clientId);
+    `).get(clientId) as { id: number } | undefined;
 
     if (application) {
       db.prepare(`

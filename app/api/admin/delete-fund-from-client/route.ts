@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // fund_amounts에서도 해당 자금 제거
-    let fundAmounts = {};
+    let fundAmounts: Record<string, any> = {};
     if (application.fund_amounts) {
       try {
         fundAmounts = JSON.parse(application.fund_amounts);

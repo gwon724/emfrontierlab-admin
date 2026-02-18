@@ -30,7 +30,7 @@ export async function DELETE(request: NextRequest) {
     // 파일 정보 조회
     const file = db.prepare(`
       SELECT file_path FROM client_documents WHERE id = ?
-    `).get(fileId);
+    `).get(fileId) as { file_path: string } | undefined;
 
     if (!file) {
       return NextResponse.json({ error: '파일을 찾을 수 없습니다' }, { status: 404 });
