@@ -15,3 +15,48 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Print styles for AI Report */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:static {
+    position: static !important;
+  }
+
+  /* Hide scroll bars and modals overlay in print */
+  .fixed {
+    position: static !important;
+  }
+
+  /* Ensure backgrounds print */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Page break control */
+  .page-break {
+    page-break-after: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+}
