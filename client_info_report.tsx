@@ -28,6 +28,10 @@ export default function ClientInfoReport({ client, onClose }: ClientInfoReportPr
     window.print();
   };
 
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   if (!client) return null;
 
   // 총 부채 계산
@@ -37,8 +41,63 @@ export default function ClientInfoReport({ client, onClose }: ClientInfoReportPr
                     (client.debt_card_loan || 0);
 
   return (
-    <div id="client-info-overlay" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div id="client-info-container" className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      <style jsx global>{`
+        @media print {
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          
+          #client-info-overlay {
+            position: static;
+            background: white;
+            padding: 0;
+          }
+          
+          #client-info-container {
+            max-width: 100%;
+            max-height: none;
+            overflow: visible;
+            box-shadow: none;
+            border-radius: 0;
+          }
+          
+          #client-info-content {
+            padding: 20mm;
+          }
+          
+          .print-hide {
+            display: none !important;
+          }
+          
+          .report-page {
+            page-break-after: always;
+          }
+          
+          .report-page:last-child {
+            page-break-after: auto;
+          }
+          
+          .avoid-break {
+            page-break-inside: avoid;
+          }
+          
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
+        }
+        
+        @media screen {
+          .print-only {
+            display: none !important;
+          }
+        }
+      `}</style>
+      
+      <div id="client-info-overlay" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div id="client-info-container" className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         
         {/* 화면용 헤더 (프린트 시 숨김) */}
         <div className="print-hide sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center z-10">
@@ -46,9 +105,21 @@ export default function ClientInfoReport({ client, onClose }: ClientInfoReportPr
           <div className="flex gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
             >
-              🖨️ 인쇄
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              인쇄
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              PDF
             </button>
             <button
               onClick={onClose}
@@ -298,5 +369,6 @@ export default function ClientInfoReport({ client, onClose }: ClientInfoReportPr
         </div>
       </div>
     </div>
+    </>
   );
 }
