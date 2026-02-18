@@ -20,6 +20,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const {
       clientId,
+      annual_revenue,
       total_debt,
       debt_policy_fund,
       debt_credit_loan,
@@ -44,10 +45,11 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // 부채 정보 업데이트 (debt와 total_debt 모두 업데이트)
+    // 재무 정보 업데이트 (연매출 + 부채 정보)
     db.prepare(`
       UPDATE clients 
       SET 
+        annual_revenue = ?,
         debt = ?,
         total_debt = ?,
         debt_policy_fund = ?,
@@ -56,6 +58,7 @@ export async function PUT(req: Request) {
         debt_card_loan = ?
       WHERE id = ?
     `).run(
+      annual_revenue || 0,
       total_debt,
       total_debt,
       debt_policy_fund || 0,

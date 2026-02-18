@@ -31,6 +31,7 @@ export default function AdminDashboard() {
   const [fundAmounts, setFundAmounts] = useState<{[key: string]: number}>({});
   const [editingDebt, setEditingDebt] = useState(false);
   const [debtData, setDebtData] = useState({
+    annual_revenue: 0,
     total_debt: 0,
     debt_policy_fund: 0,
     debt_credit_loan: 0,
@@ -616,6 +617,7 @@ export default function AdminDashboard() {
   // 부채 정보 수정 시작
   const handleStartEditDebt = () => {
     setDebtData({
+      annual_revenue: selectedClient.annual_revenue || 0,
       total_debt: selectedClient.total_debt || 0,
       debt_policy_fund: selectedClient.debt_policy_fund || 0,
       debt_credit_loan: selectedClient.debt_credit_loan || 0,
@@ -1882,13 +1884,14 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      연매출 (수정 불가)
+                      연매출 (원)
                     </label>
                     <input
-                      type="text"
-                      value={selectedClient.annual_revenue?.toLocaleString()}
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                      type="number"
+                      value={debtData.annual_revenue}
+                      onChange={(e) => setDebtData({...debtData, annual_revenue: parseInt(e.target.value) || 0})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="연매출을 입력하세요"
                     />
                   </div>
                   <div>
