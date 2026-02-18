@@ -21,6 +21,7 @@ export async function PUT(req: Request) {
     const {
       clientId,
       annual_revenue,
+      business_years,
       total_debt,
       debt_policy_fund,
       debt_credit_loan,
@@ -45,11 +46,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // 재무 정보 업데이트 (연매출 + 부채 정보)
+    // 재무 정보 업데이트 (연매출 + 업력 + 부채 정보)
     db.prepare(`
       UPDATE clients 
       SET 
         annual_revenue = ?,
+        business_years = ?,
         debt = ?,
         total_debt = ?,
         debt_policy_fund = ?,
@@ -59,6 +61,7 @@ export async function PUT(req: Request) {
       WHERE id = ?
     `).run(
       annual_revenue || 0,
+      business_years || 0,
       total_debt,
       total_debt,
       debt_policy_fund || 0,

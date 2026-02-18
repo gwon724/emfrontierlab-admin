@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [editingDebt, setEditingDebt] = useState(false);
   const [debtData, setDebtData] = useState({
     annual_revenue: 0,
+    business_years: 0,
     total_debt: 0,
     debt_policy_fund: 0,
     debt_credit_loan: 0,
@@ -618,6 +619,7 @@ export default function AdminDashboard() {
   const handleStartEditDebt = () => {
     setDebtData({
       annual_revenue: selectedClient.annual_revenue || 0,
+      business_years: selectedClient.business_years || 0,
       total_debt: selectedClient.total_debt || 0,
       debt_policy_fund: selectedClient.debt_policy_fund || 0,
       debt_credit_loan: selectedClient.debt_credit_loan || 0,
@@ -1882,17 +1884,33 @@ export default function AdminDashboard() {
                 </>
               ) : (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      연매출 (원)
-                    </label>
-                    <input
-                      type="number"
-                      value={debtData.annual_revenue}
-                      onChange={(e) => setDebtData({...debtData, annual_revenue: parseInt(e.target.value) || 0})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="연매출을 입력하세요"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        연매출 (원)
+                      </label>
+                      <input
+                        type="number"
+                        value={debtData.annual_revenue}
+                        onChange={(e) => setDebtData({...debtData, annual_revenue: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="연매출을 입력하세요"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        업력 (년)
+                      </label>
+                      <input
+                        type="number"
+                        value={debtData.business_years}
+                        onChange={(e) => setDebtData({...debtData, business_years: parseInt(e.target.value) || 0})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="사업 업력 (년)"
+                        min="0"
+                        max="50"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
