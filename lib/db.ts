@@ -83,9 +83,15 @@ export function initDatabase() {
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
+      phone TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // admins 테이블 마이그레이션
+  try {
+    database.exec(`ALTER TABLE admins ADD COLUMN phone TEXT`);
+  } catch (e) {}
 
   // 진행상황 테이블
   database.exec(`
