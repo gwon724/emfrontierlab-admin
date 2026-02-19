@@ -2,19 +2,21 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 
 export default function DocumentEditor() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clientId = searchParams.get('clientId');
   const clientName = searchParams.get('clientName');
-  
+
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [qrCode, setQrCode] = useState('');
-  const editorRef = useRef<any>(null);
+
+  // 로그인된 관리자 정보
+  const [adminName, setAdminName] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
 
   useEffect(() => {
     if (!clientId) {
@@ -22,7 +24,19 @@ export default function DocumentEditor() {
       router.back();
       return;
     }
-    
+
+    // 로그인된 관리자 정보 불러오기
+    try {
+      const adminDataRaw = localStorage.getItem('adminData');
+      if (adminDataRaw) {
+        const adminData = JSON.parse(adminDataRaw);
+        setAdminName(adminData.name || '');
+        setAdminPhone(adminData.phone || '');
+      }
+    } catch (e) {
+      // 무시
+    }
+
     // QR 코드 생성
     generateQRCode();
     setLoading(false);
@@ -33,15 +47,15 @@ export default function DocumentEditor() {
       const qrData = JSON.stringify({
         clientId: clientId,
         timestamp: Date.now(),
-        type: 'admin-document'
+        type: 'admin-document',
       });
-      
+
       const res = await fetch('/api/qr/generate-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData })
+        body: JSON.stringify({ qrData }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setQrCode(data.qrCode);
@@ -53,20 +67,20 @@ export default function DocumentEditor() {
 
   const handleSave = async () => {
     const token = localStorage.getItem('adminToken');
-    
+
     try {
       const res = await fetch('/api/admin/save-document', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           clientId,
           title: title || `${clientName} 문서`,
           content,
-          documentType: 'general'
-        })
+          documentType: 'general',
+        }),
       });
 
       if (res.ok) {
@@ -85,7 +99,6 @@ export default function DocumentEditor() {
   };
 
   const handleExportPDF = () => {
-    // 인쇄 다이얼로그를 PDF로 저장하도록 유도
     window.print();
   };
 
@@ -114,29 +127,45 @@ export default function DocumentEditor() {
                 문서 작성 - {clientName || '클라이언트'}
               </h1>
             </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-              >
-                💾 저장
-              </button>
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-              >
-                🖨️ 인쇄
-              </button>
-              <button
-                onClick={handleExportPDF}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
-              >
-                📄 PDF 저장
-              </button>
+
+            <div className="flex items-center gap-4">
+              {/* 담당자 정보 미리보기 */}
+              {(adminName || adminPhone) && (
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-xs text-blue-600 font-medium">담당자:</span>
+                  <span className="text-xs text-blue-800 font-semibold">{adminName}</span>
+                  {adminPhone && (
+                    <>
+                      <span className="text-blue-300">|</span>
+                      <span className="text-xs text-blue-800">{adminPhone}</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                >
+                  💾 저장
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                >
+                  🖨️ 인쇄
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+                >
+                  📄 PDF 저장
+                </button>
+              </div>
             </div>
           </div>
-          
+
           {/* 제목 입력 */}
           <div className="mt-4">
             <input
@@ -150,21 +179,24 @@ export default function DocumentEditor() {
         </div>
       </div>
 
-      {/* 문서 영역 */}
+      {/* 문서 영역 (A4) */}
       <div className="max-w-[21cm] mx-auto my-8 print:my-0 print:max-w-full">
-        <div className="bg-white shadow-lg print:shadow-none relative min-h-[29.7cm] p-8 print:p-12">
-          {/* QR 코드 - 우측 상단 */}
+        <div className="bg-white shadow-lg print:shadow-none relative min-h-[29.7cm] p-10 print:p-12">
+
+          {/* ── QR 코드: 우측 상단 고정 ── */}
           {qrCode && (
-            <div className="absolute top-4 right-4 print:top-8 print:right-8">
-              <div className="bg-white p-2 border-2 border-gray-300 rounded-lg">
+            <div className="absolute top-6 right-6 print:top-10 print:right-10 z-10">
+              <div className="bg-white p-2 border-2 border-gray-300 rounded-xl shadow-sm flex flex-col items-center">
                 <img src={qrCode} alt="QR Code" className="w-24 h-24" />
-                <p className="text-xs text-center text-gray-500 mt-1">관리자 전용</p>
+                <p className="text-[10px] text-center text-gray-500 mt-1 leading-tight">
+                  EMFRONTIER<br />관리 문서
+                </p>
               </div>
             </div>
           )}
 
-          {/* 제목 영역 */}
-          <div className="mb-8 print:mb-12">
+          {/* ── 문서 제목 영역 ── */}
+          <div className="mb-8 print:mb-10 pr-32">
             <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
               {title || '문서 제목'}
             </h1>
@@ -176,12 +208,12 @@ export default function DocumentEditor() {
             </div>
           </div>
 
-          {/* 워드 에디터 영역 */}
+          {/* ── 본문 에디터 영역 ── */}
           <div className="prose max-w-none">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="여기에 내용을 입력하세요...
+              placeholder={`여기에 내용을 입력하세요...
 
 예시:
 1. 정책자금 신청 내역
@@ -189,26 +221,53 @@ export default function DocumentEditor() {
 3. 필요 서류
 4. 기타 사항
 
-자유롭게 작성하시면 됩니다."
+자유롭게 작성하시면 됩니다.`}
               className="w-full min-h-[500px] print:min-h-0 border-none focus:outline-none resize-none font-sans text-base leading-relaxed"
-              style={{ 
+              style={{
                 fontFamily: "'Noto Sans KR', sans-serif",
-                lineHeight: '1.8'
+                lineHeight: '1.8',
               }}
             />
           </div>
 
-          {/* 서명 영역 */}
-          <div className="mt-16 print:mt-24 flex justify-between items-end">
-            <div className="text-sm text-gray-600">
-              <p className="mb-1">담당자: _________________</p>
-              <p>연락처: _________________</p>
+          {/* ── 서명 / 담당자 영역 ── */}
+          <div className="mt-16 print:mt-24 flex justify-between items-end border-t pt-6">
+            {/* 담당자 정보 — 로그인된 관리자 자동 기입 */}
+            <div className="text-sm text-gray-700 space-y-1.5">
+              <p className="font-semibold text-gray-800 mb-2">담당자 정보</p>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 w-14 flex-shrink-0">담당자</span>
+                {adminName ? (
+                  <span className="font-semibold text-gray-900 border-b border-gray-400 min-w-[120px] pb-0.5">
+                    {adminName}
+                  </span>
+                ) : (
+                  <span className="border-b border-gray-400 min-w-[120px] pb-0.5 text-gray-400 italic">
+                    _________________
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 w-14 flex-shrink-0">연락처</span>
+                {adminPhone ? (
+                  <span className="font-semibold text-gray-900 border-b border-gray-400 min-w-[120px] pb-0.5">
+                    {adminPhone}
+                  </span>
+                ) : (
+                  <span className="border-b border-gray-400 min-w-[120px] pb-0.5 text-gray-400 italic">
+                    _________________
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* 회사 정보 */}
             <div className="text-right">
-              <p className="text-lg font-bold mb-2">EMFRONTIER LAB</p>
-              <p className="text-sm text-gray-600">정책자금 관리 시스템</p>
+              <p className="text-lg font-bold mb-1 text-gray-900">EMFRONTIER LAB</p>
+              <p className="text-sm text-gray-500">정책자금 관리 시스템</p>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -219,16 +278,13 @@ export default function DocumentEditor() {
             size: A4;
             margin: 15mm;
           }
-          
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          
           .print\\:hidden {
             display: none !important;
           }
-          
           textarea {
             border: none !important;
             outline: none !important;

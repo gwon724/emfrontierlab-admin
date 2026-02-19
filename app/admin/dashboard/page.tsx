@@ -801,6 +801,23 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-300">정책자금 관리 시스템</p>
           </div>
           <div className="flex gap-3 items-center">
+            {/* 로그인된 관리자 이름/연락처 표시 */}
+            {(() => {
+              try {
+                const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+                if (adminData?.name) {
+                  return (
+                    <div className="hidden md:flex flex-col items-end mr-2">
+                      <span className="text-sm font-semibold text-white">👤 {adminData.name}</span>
+                      {adminData.phone && (
+                        <span className="text-xs text-gray-300">{adminData.phone}</span>
+                      )}
+                    </div>
+                  );
+                }
+              } catch (e) {}
+              return null;
+            })()}
             <button
               onClick={() => setShowRegisterLinkModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md"
