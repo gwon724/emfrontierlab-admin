@@ -52,6 +52,30 @@ export function initDatabase() {
     // 컬럼이 이미 존재하면 무시
   }
 
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN birth_date TEXT`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN industry TEXT`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN is_manufacturing INTEGER DEFAULT 0`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN is_manufacturer INTEGER DEFAULT 0`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN business_years INTEGER DEFAULT 0`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN total_debt INTEGER DEFAULT 0`);
+  } catch (e) {}
+
   // 어드민 사용자 테이블
   database.exec(`
     CREATE TABLE IF NOT EXISTS admins (
@@ -155,6 +179,19 @@ export function initDatabase() {
   } catch (e) {
     // 이미 존재하면 무시
   }
+
+  // 마이그레이션: birth_date, industry, is_manufacturing 컬럼 추가
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN birth_date TEXT`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN industry TEXT`);
+  } catch (e) {}
+
+  try {
+    database.exec(`ALTER TABLE clients ADD COLUMN is_manufacturing INTEGER DEFAULT 0`);
+  } catch (e) {}
 
   // 기본 어드민 계정 생성
   const adminPassword = bcrypt.hashSync('skc07245', 10);

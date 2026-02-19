@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
       kcb_score,
       nice_score,
       has_technology,
-      business_years
+      business_years,
+      birth_date,
+      industry,
+      is_manufacturing
     } = body;
 
     // 필수 필드 검증
@@ -101,10 +104,13 @@ export async function POST(request: NextRequest) {
         nice_score,
         has_technology,
         business_years,
+        birth_date,
+        industry,
+        is_manufacturing,
         agree_credit_check,
         agree_privacy,
         agree_confidentiality
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
     `).run(
       email,
       hashedPassword,
@@ -121,7 +127,10 @@ export async function POST(request: NextRequest) {
       parseInt(kcb_score) || null,
       parseInt(nice_score) || 0,
       has_technology ? 1 : 0,
-      parseInt(business_years) || 0
+      parseInt(business_years) || 0,
+      birth_date || null,
+      industry || null,
+      is_manufacturing ? 1 : 0
     );
 
     return NextResponse.json({

@@ -12,13 +12,19 @@ export interface ClientData {
   debt?: number;
   hasTechnology?: boolean;
   has_technology?: boolean;
+  isManufacturer?: boolean;
+  is_manufacturer?: boolean;
   name?: string;
   age?: number;
+  birth_date?: string;       // 생년월일 (YYYY-MM-DD)
   gender?: string;
   businessYears?: number;
   business_years?: number;
   employeeCount?: number;
   employee_count?: number;
+  industry?: string;          // 업종명
+  isManufacturing?: boolean;  // 제조업 여부
+  is_manufacturing?: number | boolean;  // DB 저장값 (0/1 또는 boolean)
   debtPolicyFund?: number;
   debt_policy_fund?: number;
   debtCreditLoan?: number;
@@ -27,6 +33,34 @@ export interface ClientData {
   debt_secondary_loan?: number;
   debtCardLoan?: number;
   debt_card_loan?: number;
+}
+
+// 만 나이 계산 헬퍼 함수
+export function calcAge(birthDate?: string, age?: number): number {
+  if (birthDate) {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let calcAge = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      calcAge--;
+    }
+    return calcAge;
+  }
+  return age || 0;
+}
+
+// 제조업 여부 헬퍼 함수
+export function checkIsManufacturing(c: ClientData): boolean {
+  if (c.isManufacturer !== undefined) return c.isManufacturer;
+  if (c.is_manufacturer !== undefined) {
+    return c.is_manufacturer === true || (c.is_manufacturer as unknown as number) === 1;
+  }
+  if (c.isManufacturing !== undefined) return c.isManufacturing;
+  if (c.is_manufacturing !== undefined) {
+    return c.is_manufacturing === 1 || c.is_manufacturing === true;
+  }
+  return false;
 }
 
 // 개별 조건 체크 결과
@@ -93,15 +127,22 @@ const FUND_DEFINITIONS: Record<string, FundDef> = {
 
   '중진공 청년창업 지원금': {
     category: '중진공',
-    max_amount: 100000000,
+    max_amount: 200000000, // 최대(제조업+청년): 2억
     interest_rate: '2.5%',
-    requirements: '업력 3년 이내',
+    requirements: '만39세 미만 청년 창업자 (제조업 시 최대 2억, 기타 최대 1억)',
     checkConditions: (c) => {
       const yrs = c.businessYears ?? c.business_years ?? 0;
       const rev = c.annualRevenue || c.annual_revenue || 0;
+      const actualAge = calcAge(c.birth_date, c.age);
+      const isYouth = actualAge > 0 && actualAge < 39; // 만39세 미만
+      const isMfg = checkIsManufacturing(c);
+      const ageDisplay = actualAge > 0 ? `만 ${actualAge}세` : (c.age ? `만 ${c.age}세` : '미입력');
+      // 동적 한도 표시
+      const limitDisplay = isMfg && isYouth ? '최대 2억 (제조업 청년)' : '최대 1억 (청년)';
       return [
-        { label: '업력', required: '3년 이내', actual: `${yrs}년`, passed: yrs <= 3 },
-        { label: '연매출', required: '제한 없음', actual: `${(rev/100000000).toFixed(1)}억`, passed: true },
+        { label: '나이 (만39세 미만)', required: '만 39세 미만', actual: ageDisplay, passed: isYouth },
+        { label: '업종', required: '제한 없음 (제조업 시 한도 2배)', actual: isMfg ? '제조업' : (c.industry || '일반업종'), passed: true },
+        { label: '대출 한도', required: limitDisplay, actual: limitDisplay, passed: isYouth },
       ];
     }
   },
@@ -427,10 +468,24 @@ export function evaluatePolicyFunds(client: ClientData): PolicyFundResult[] {
     const conditions = def.checkConditions(client);
     const passCount = conditions.filter(c => c.passed).length;
     const eligible = conditions.every(c => c.passed);
+
+    // 중진공 청년창업 지원금: 만39세 미만이면서 제조업이면 최대 2억, 아니면 최대 1억
+    let max_amount = def.max_amount;
+    if (name === '중진공 청년창업 지원금') {
+      const actualAge = calcAge(client.birth_date, client.age);
+      const isYouth = actualAge > 0 && actualAge < 39;
+      const isMfg = checkIsManufacturing(client);
+      if (isYouth && isMfg) {
+        max_amount = 200000000; // 제조업 청년: 2억
+      } else {
+        max_amount = 100000000; // 일반 청년: 1억
+      }
+    }
+
     return {
       name,
       category: def.category,
-      max_amount: def.max_amount,
+      max_amount,
       interest_rate: def.interest_rate,
       requirements: def.requirements,
       conditions,

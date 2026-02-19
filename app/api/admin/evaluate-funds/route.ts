@@ -29,6 +29,10 @@ export async function POST(request: NextRequest) {
       hasTechnology: client.has_technology === 1,
       businessYears: client.business_years || 0,
       employeeCount: client.employee_count || 0,
+      age: client.age || 0,
+      birth_date: client.birth_date || undefined,
+      industry: client.industry || undefined,
+      is_manufacturing: client.is_manufacturing || 0,
     };
 
     const sohoGrade = calculateSOHOGrade(clientData);

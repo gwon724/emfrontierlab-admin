@@ -1119,10 +1119,47 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                   <div><label className="text-xs text-gray-500">이름</label><p className="font-semibold text-gray-900">{selectedClient.name}</p></div>
                   <div><label className="text-xs text-gray-500">이메일</label><p className="font-semibold text-gray-900 text-sm">{selectedClient.email}</p></div>
-                  <div><label className="text-xs text-gray-500">나이</label><p className="font-semibold text-gray-900">{selectedClient.age}세</p></div>
+                  <div><label className="text-xs text-gray-500">나이</label>
+                    <p className="font-semibold text-gray-900">
+                      {selectedClient.birth_date
+                        ? (() => {
+                            const b = new Date(selectedClient.birth_date);
+                            const now = new Date();
+                            let a = now.getFullYear() - b.getFullYear();
+                            const m = now.getMonth() - b.getMonth();
+                            if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
+                            return `만 ${a}세`;
+                          })()
+                        : selectedClient.age ? `${selectedClient.age}세` : '-'}
+                      {selectedClient.age && selectedClient.age <= 39 && (
+                        <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">청년</span>
+                      )}
+                    </p>
+                  </div>
                   <div><label className="text-xs text-gray-500">성별</label><p className="font-semibold text-gray-900">{selectedClient.gender}</p></div>
+                  <div><label className="text-xs text-gray-500">업종</label>
+                    <p className="font-semibold text-gray-900 flex items-center gap-1">
+                      {selectedClient.industry || (selectedClient.is_manufacturer || selectedClient.is_manufacturing ? '제조업' : '-')}
+                      {(selectedClient.is_manufacturer === 1 || selectedClient.is_manufacturing === 1) && (
+                        <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold">🏭 제조업</span>
+                      )}
+                    </p>
+                  </div>
                   <div><label className="text-xs text-gray-500">사업연수</label><p className="font-semibold text-gray-900">{selectedClient.business_years || '-'}년</p></div>
+                  <div><label className="text-xs text-gray-500">생년월일</label><p className="font-semibold text-gray-900 text-sm">{selectedClient.birth_date || '-'}</p></div>
                   <div><label className="text-xs text-gray-500">가입일</label><p className="font-semibold text-gray-900 text-sm">{new Date(selectedClient.created_at).toLocaleString('ko-KR')}</p></div>
+                  {selectedClient.age && selectedClient.age < 39 && (
+                    <div className="col-span-2 md:col-span-3">
+                      <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs font-semibold text-blue-800">
+                          🎉 청년창업자금 대상
+                          {(selectedClient.is_manufacturing === 1) && selectedClient.age < 39
+                            ? ' — 만 39세 미만 + 제조업 → 최대 2억 원, 금리 2.5%'
+                            : ' — 만 39세 미만 → 최대 1억 원, 금리 2.5%'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
