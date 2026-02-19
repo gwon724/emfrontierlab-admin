@@ -13,6 +13,7 @@ export default function DocumentEditor() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [qrCode, setQrCode] = useState('');
+  const [qrLoading, setQrLoading] = useState(true);
 
   // 로그인된 관리자 정보
   const [adminName, setAdminName] = useState('');
@@ -37,31 +38,33 @@ export default function DocumentEditor() {
       // 무시
     }
 
-    // QR 코드 생성
-    generateQRCode();
+    // QR 코드 생성 (clientId 기반)
+    generateClientQR();
     setLoading(false);
   }, [clientId]);
 
-  const generateQRCode = async () => {
+  const generateClientQR = async () => {
+    setQrLoading(true);
     try {
-      const qrData = JSON.stringify({
-        clientId: clientId,
-        timestamp: Date.now(),
-        type: 'admin-document',
-      });
-
+      const token = localStorage.getItem('adminToken');
       const res = await fetch('/api/qr/generate-admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ clientId: Number(clientId) }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setQrCode(data.qrCode);
+        // generate-admin returns qrCodeUrl
+        setQrCode(data.qrCodeUrl || data.qrCode || '');
       }
     } catch (error) {
       console.error('QR 생성 오류:', error);
+    } finally {
+      setQrLoading(false);
     }
   };
 
@@ -102,10 +105,41 @@ export default function DocumentEditor() {
     window.print();
   };
 
+  /* ── QR 코드 블록 (항상 렌더링 – 로딩 중이면 스켈레톤) ── */
+  const QRBlock = () => (
+    <div className="absolute top-6 right-6 print:top-8 print:right-8 z-10">
+      <div className="bg-white p-2 border-2 border-gray-300 rounded-xl shadow-sm flex flex-col items-center" style={{ minWidth: 100 }}>
+        {qrLoading ? (
+          <div className="w-24 h-24 bg-gray-100 animate-pulse rounded flex items-center justify-center">
+            <span className="text-[10px] text-gray-400">생성 중...</span>
+          </div>
+        ) : qrCode ? (
+          <img src={qrCode} alt="Client QR Code" className="w-24 h-24" />
+        ) : (
+          <div className="w-24 h-24 bg-gray-100 flex items-center justify-center rounded">
+            <span className="text-[10px] text-gray-400">QR 없음</span>
+          </div>
+        )}
+        <p className="text-[10px] text-center text-gray-500 mt-1 leading-tight font-medium">
+          {clientName || 'CLIENT'}<br />
+          <span className="text-gray-400">EMFRONTIER</span>
+        </p>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">로딩 중...</div>
+      <div className="min-h-screen bg-gray-50">
+        {/* 로딩 중에도 QR은 이미 생성 요청 중 */}
+        <div className="max-w-[21cm] mx-auto my-8">
+          <div className="bg-white shadow-lg relative min-h-[29.7cm] p-10">
+            <QRBlock />
+            <div className="flex items-center justify-center h-64">
+              <div className="text-xl text-gray-400">문서 로딩 중...</div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -113,7 +147,7 @@ export default function DocumentEditor() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 - 인쇄 시 숨김 */}
-      <div className="print:hidden bg-white border-b sticky top-0 z-10">
+      <div className="print:hidden bg-white border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -124,7 +158,7 @@ export default function DocumentEditor() {
                 ← 돌아가기
               </button>
               <h1 className="text-xl font-bold text-gray-800">
-                문서 작성 - {clientName || '클라이언트'}
+                문서 작성 — {clientName || '클라이언트'}
               </h1>
             </div>
 
@@ -183,20 +217,11 @@ export default function DocumentEditor() {
       <div className="max-w-[21cm] mx-auto my-8 print:my-0 print:max-w-full">
         <div className="bg-white shadow-lg print:shadow-none relative min-h-[29.7cm] p-10 print:p-12">
 
-          {/* ── QR 코드: 우측 상단 고정 ── */}
-          {qrCode && (
-            <div className="absolute top-6 right-6 print:top-10 print:right-10 z-10">
-              <div className="bg-white p-2 border-2 border-gray-300 rounded-xl shadow-sm flex flex-col items-center">
-                <img src={qrCode} alt="QR Code" className="w-24 h-24" />
-                <p className="text-[10px] text-center text-gray-500 mt-1 leading-tight">
-                  EMFRONTIER<br />관리 문서
-                </p>
-              </div>
-            </div>
-          )}
+          {/* ── QR 코드: 우측 상단 고정 (항상 렌더링) ── */}
+          <QRBlock />
 
-          {/* ── 문서 제목 영역 ── */}
-          <div className="mb-8 print:mb-10 pr-32">
+          {/* ── 문서 제목 영역 (QR 공간 확보를 위해 오른쪽 여백) ── */}
+          <div className="mb-8 print:mb-10 pr-36">
             <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
               {title || '문서 제목'}
             </h1>

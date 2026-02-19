@@ -104,6 +104,21 @@ export default function AdminDashboard() {
   });
   const [savingDebt, setSavingDebt] = useState(false);
 
+  // 수동 클라이언트 등록
+  const [showCreateClientModal, setShowCreateClientModal] = useState(false);
+  const [createClientLoading, setCreateClientLoading] = useState(false);
+  const [createClientError, setCreateClientError] = useState('');
+  const [createClientForm, setCreateClientForm] = useState({
+    name: '', email: '', password: '', phone: '',
+    age: '', gender: 'M', birth_date: '',
+    annual_revenue: '', business_years: '',
+    debt_policy_fund: '0', debt_credit_loan: '0',
+    debt_secondary_loan: '0', debt_card_loan: '0',
+    nice_score: '700', kcb_score: '',
+    has_technology: false, industry: '',
+    is_manufacturing: false,
+  });
+
   // 계정 관리 (아이디/비밀번호 변경)
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountClient, setAccountClient] = useState<any>(null);
@@ -818,6 +833,15 @@ export default function AdminDashboard() {
               } catch (e) {}
               return null;
             })()}
+            <button
+              onClick={() => { setCreateClientForm({ name:'',email:'',password:'',phone:'',age:'',gender:'M',birth_date:'',annual_revenue:'',business_years:'',debt_policy_fund:'0',debt_credit_loan:'0',debt_secondary_loan:'0',debt_card_loan:'0',nice_score:'700',kcb_score:'',has_technology:false,industry:'',is_manufacturing:false }); setCreateClientError(''); setShowCreateClientModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              클라이언트 등록
+            </button>
             <button
               onClick={() => setShowRegisterLinkModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md"
@@ -1651,6 +1675,258 @@ export default function AdminDashboard() {
                   className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors text-sm"
                 >
                   🗑️ 삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 수동 클라이언트 등록 모달 ===== */}
+      {showCreateClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            {/* 모달 헤더 */}
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 rounded-t-2xl sticky top-0 z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">클라이언트 직접 등록</h3>
+                    <p className="text-indigo-100 text-sm">관리자가 직접 클라이언트 정보를 입력합니다</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowCreateClientModal(false)} className="text-white hover:text-indigo-200 text-2xl font-bold">×</button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {createClientError && (
+                <div className="p-3 bg-red-50 border border-red-300 text-red-700 rounded-lg text-sm">⚠️ {createClientError}</div>
+              )}
+
+              {/* 기본 정보 */}
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3 pb-1 border-b">기본 정보</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">이름 *</label>
+                    <input type="text" value={createClientForm.name}
+                      onChange={e => setCreateClientForm(p => ({...p, name: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="홍길동" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">연락처</label>
+                    <input type="tel" value={createClientForm.phone}
+                      onChange={e => setCreateClientForm(p => ({...p, phone: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="010-1234-5678" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">이메일 *</label>
+                    <input type="email" value={createClientForm.email}
+                      onChange={e => setCreateClientForm(p => ({...p, email: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="client@example.com" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">비밀번호 *</label>
+                    <input type="password" value={createClientForm.password}
+                      onChange={e => setCreateClientForm(p => ({...p, password: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="최소 6자" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">생년월일</label>
+                    <input type="date" value={createClientForm.birth_date}
+                      onChange={e => {
+                        const bd = e.target.value;
+                        let age = '';
+                        if (bd) {
+                          const today = new Date();
+                          const birth = new Date(bd);
+                          let a = today.getFullYear() - birth.getFullYear();
+                          const m = today.getMonth() - birth.getMonth();
+                          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
+                          age = String(a);
+                        }
+                        setCreateClientForm(p => ({...p, birth_date: bd, age}));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">만 나이</label>
+                    <input type="number" value={createClientForm.age}
+                      onChange={e => setCreateClientForm(p => ({...p, age: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="예: 35" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">성별 *</label>
+                    <select value={createClientForm.gender}
+                      onChange={e => setCreateClientForm(p => ({...p, gender: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                      <option value="M">남성</option>
+                      <option value="F">여성</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">업종</label>
+                    <input type="text" value={createClientForm.industry}
+                      onChange={e => setCreateClientForm(p => ({...p, industry: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="예: 제조업, IT, 식품" />
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={createClientForm.has_technology}
+                      onChange={e => setCreateClientForm(p => ({...p, has_technology: e.target.checked}))}
+                      className="w-4 h-4 rounded" />
+                    <span className="text-gray-700">기술 보유</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={createClientForm.is_manufacturing}
+                      onChange={e => setCreateClientForm(p => ({...p, is_manufacturing: e.target.checked}))}
+                      className="w-4 h-4 rounded" />
+                    <span className="text-gray-700">제조업</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 재무 정보 */}
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3 pb-1 border-b">재무 정보</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">연매출 (원) *</label>
+                    <input type="number" value={createClientForm.annual_revenue}
+                      onChange={e => setCreateClientForm(p => ({...p, annual_revenue: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="100000000" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">업력 (년) *</label>
+                    <input type="number" value={createClientForm.business_years}
+                      onChange={e => setCreateClientForm(p => ({...p, business_years: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="3" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">정책자금 부채 (원)</label>
+                    <input type="number" value={createClientForm.debt_policy_fund}
+                      onChange={e => setCreateClientForm(p => ({...p, debt_policy_fund: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">신용대출 부채 (원)</label>
+                    <input type="number" value={createClientForm.debt_credit_loan}
+                      onChange={e => setCreateClientForm(p => ({...p, debt_credit_loan: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">2금융 부채 (원)</label>
+                    <input type="number" value={createClientForm.debt_secondary_loan}
+                      onChange={e => setCreateClientForm(p => ({...p, debt_secondary_loan: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">카드론 부채 (원)</label>
+                    <input type="number" value={createClientForm.debt_card_loan}
+                      onChange={e => setCreateClientForm(p => ({...p, debt_card_loan: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 신용점수 */}
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3 pb-1 border-b">신용점수</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">NICE 신용점수 *</label>
+                    <input type="number" value={createClientForm.nice_score}
+                      onChange={e => setCreateClientForm(p => ({...p, nice_score: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="700" min="0" max="1000" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">KCB 신용점수</label>
+                    <input type="number" value={createClientForm.kcb_score}
+                      onChange={e => setCreateClientForm(p => ({...p, kcb_score: e.target.value}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="700" min="0" max="1000" />
+                  </div>
+                </div>
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowCreateClientModal(false)}
+                  className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  disabled={createClientLoading}
+                  onClick={async () => {
+                    setCreateClientError('');
+                    const f = createClientForm;
+                    if (!f.name.trim()) { setCreateClientError('이름을 입력해주세요.'); return; }
+                    if (!f.email || !f.email.includes('@')) { setCreateClientError('올바른 이메일을 입력해주세요.'); return; }
+                    if (!f.password || f.password.length < 6) { setCreateClientError('비밀번호는 최소 6자 이상이어야 합니다.'); return; }
+                    if (!f.age) { setCreateClientError('나이를 입력해주세요.'); return; }
+                    if (!f.annual_revenue) { setCreateClientError('연매출을 입력해주세요.'); return; }
+                    if (f.business_years === '') { setCreateClientError('업력을 입력해주세요.'); return; }
+                    if (!f.nice_score) { setCreateClientError('NICE 신용점수를 입력해주세요.'); return; }
+                    setCreateClientLoading(true);
+                    try {
+                      const token = localStorage.getItem('adminToken');
+                      const totalDebt = (parseInt(f.debt_policy_fund)||0) + (parseInt(f.debt_credit_loan)||0) + (parseInt(f.debt_secondary_loan)||0) + (parseInt(f.debt_card_loan)||0);
+                      const res = await fetch('/api/admin/create-client', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({
+                          name: f.name.trim(), email: f.email, password: f.password,
+                          phone: f.phone || null, age: parseInt(f.age)||0,
+                          gender: f.gender, birth_date: f.birth_date || null,
+                          annual_revenue: parseInt(f.annual_revenue)||0,
+                          debt: totalDebt,
+                          debt_policy_fund: parseInt(f.debt_policy_fund)||0,
+                          debt_credit_loan: parseInt(f.debt_credit_loan)||0,
+                          debt_secondary_loan: parseInt(f.debt_secondary_loan)||0,
+                          debt_card_loan: parseInt(f.debt_card_loan)||0,
+                          nice_score: parseInt(f.nice_score)||700,
+                          kcb_score: f.kcb_score ? parseInt(f.kcb_score) : null,
+                          has_technology: f.has_technology,
+                          business_years: parseInt(f.business_years)||0,
+                          industry: f.industry || null,
+                          is_manufacturing: f.is_manufacturing,
+                        }),
+                      });
+                      const result = await res.json();
+                      if (res.ok) {
+                        alert(`✅ 클라이언트 "${f.name}" 님이 등록되었습니다.`);
+                        setShowCreateClientModal(false);
+                        fetchData();
+                      } else {
+                        setCreateClientError(result.error || '등록 실패');
+                      }
+                    } catch (err) {
+                      setCreateClientError('서버 오류가 발생했습니다.');
+                    } finally {
+                      setCreateClientLoading(false);
+                    }
+                  }}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {createClientLoading ? '등록 중...' : '클라이언트 등록'}
                 </button>
               </div>
             </div>
