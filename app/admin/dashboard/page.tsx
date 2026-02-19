@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Html5Qrcode } from 'html5-qrcode';
 
 // 상태 목록 및 스타일 매핑
@@ -833,6 +834,15 @@ export default function AdminDashboard() {
               } catch (e) {}
               return null;
             })()}
+            <Link
+              href="/admin/admins"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors font-medium shadow-md text-white"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              관리자 명단
+            </Link>
             <button
               onClick={() => { setCreateClientForm({ name:'',email:'',password:'',phone:'',age:'',gender:'M',birth_date:'',annual_revenue:'',business_years:'',debt_policy_fund:'0',debt_credit_loan:'0',debt_secondary_loan:'0',debt_card_loan:'0',nice_score:'700',kcb_score:'',has_technology:false,industry:'',is_manufacturing:false }); setCreateClientError(''); setShowCreateClientModal(true); }}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md"

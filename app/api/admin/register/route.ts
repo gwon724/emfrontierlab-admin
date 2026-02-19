@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { initDatabase, getDatabase } from '@/lib/db';
 import { generateToken } from '@/lib/auth';
 
-// 관리자 인증 코드 (비밀번호 마지막 6자리)
+// 관리자 인증 코드 (비밀번호와 분리된 별도 인증번호)
 const ADMIN_AUTH_CODE = '018181';
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const db = getDatabase();
 
     const body = await request.json();
-    const { name, phone, email, password } = body;
+    const { name, phone, email, password, authCode } = body;
 
     // 필수 필드 검증
     if (!name || !name.trim()) {
@@ -27,6 +27,17 @@ export async function POST(request: NextRequest) {
     if (!password) {
       return NextResponse.json({ error: '비밀번호를 입력해주세요.' }, { status: 400 });
     }
+    if (!authCode) {
+      return NextResponse.json({ error: '관리자 인증번호를 입력해주세요.' }, { status: 400 });
+    }
+
+    // ── 인증번호 검증 (비밀번호와 무관하게 별도 확인) ──
+    if (authCode.trim() !== ADMIN_AUTH_CODE) {
+      return NextResponse.json(
+        { error: '관리자 인증번호가 올바르지 않습니다.' },
+        { status: 403 }
+      );
+    }
 
     // 전화번호 형식 검증
     const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
@@ -34,16 +45,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '올바른 전화번호 형식이 아닙니다.' }, { status: 400 });
     }
 
-    // 비밀번호 마지막 6자리 인증코드 검증
+    // 비밀번호 길이 검증 (최소 6자, 인증코드 조건 없음)
     if (password.length < 6) {
       return NextResponse.json({ error: '비밀번호는 최소 6자 이상이어야 합니다.' }, { status: 400 });
-    }
-    const last6 = password.slice(-6);
-    if (last6 !== ADMIN_AUTH_CODE) {
-      return NextResponse.json(
-        { error: '관리자 인증 코드가 올바르지 않습니다.' },
-        { status: 403 }
-      );
     }
 
     // 이메일 중복 확인

@@ -9,6 +9,9 @@ export default function AdminRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [authCodeInput, setAuthCodeInput] = useState('');
+  const [authCodeVerified, setAuthCodeVerified] = useState(false);
+  const [authCodeError, setAuthCodeError] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -23,10 +26,32 @@ export default function AdminRegister() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // 인증번호 확인
+  const handleVerifyAuthCode = () => {
+    setAuthCodeError('');
+    if (!authCodeInput.trim()) {
+      setAuthCodeError('인증번호를 입력해주세요.');
+      return;
+    }
+    if (authCodeInput.trim() === '018181') {
+      setAuthCodeVerified(true);
+      setAuthCodeError('');
+    } else {
+      setAuthCodeVerified(false);
+      setAuthCodeError('인증번호가 올바르지 않습니다.');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // 인증코드 확인
+    if (!authCodeVerified) {
+      setError('관리자 인증번호를 먼저 확인해주세요.');
+      return;
+    }
 
     // 이름 검증
     if (!formData.name.trim()) {
@@ -47,14 +72,9 @@ export default function AdminRegister() {
       return;
     }
 
-    // 비밀번호 검증: 마지막 6자리는 반드시 018181
+    // 비밀번호 검증 (길이만)
     if (formData.password.length < 6) {
       setError('비밀번호는 최소 6자 이상이어야 합니다.');
-      return;
-    }
-    const last6 = formData.password.slice(-6);
-    if (last6 !== '018181') {
-      setError('비밀번호 마지막 6자리가 올바르지 않습니다. (관리자 인증 코드 필요)');
       return;
     }
 
@@ -74,6 +94,7 @@ export default function AdminRegister() {
           phone: formData.phone,
           email: formData.email,
           password: formData.password,
+          authCode: authCodeInput.trim(),
         }),
       });
 
@@ -99,7 +120,7 @@ export default function AdminRegister() {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">EMFRONTIER LAB</h1>
           <p className="text-lg text-gray-300 font-semibold">관리자 회원가입</p>
-          <p className="text-sm text-gray-400 mt-1">관리자 인증 코드가 있어야 가입 가능합니다</p>
+          <p className="text-sm text-gray-400 mt-1">관리자 인증번호가 있어야 가입 가능합니다</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-2xl p-8">
@@ -175,14 +196,9 @@ export default function AdminRegister() {
                 value={formData.password}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-700 focus:border-transparent outline-none transition"
-                placeholder="비밀번호 (마지막 6자리: 관리자 인증코드)"
+                placeholder="비밀번호 (최소 6자)"
                 required
               />
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-xs text-yellow-800 font-medium">
-                  🔐 비밀번호 마지막 6자리는 관리자 인증코드여야 합니다.
-                </p>
-              </div>
             </div>
 
             {/* 비밀번호 확인 */}
@@ -201,6 +217,48 @@ export default function AdminRegister() {
               />
             </div>
 
+            {/* ── 관리자 인증번호 구분선 ── */}
+            <div className="border-t border-dashed border-gray-200 pt-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                관리자 인증번호 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={authCodeInput}
+                  onChange={e => { setAuthCodeInput(e.target.value); setAuthCodeVerified(false); setAuthCodeError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleVerifyAuthCode(); } }}
+                  className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                    authCodeVerified
+                      ? 'border-green-400 focus:ring-green-500 bg-green-50'
+                      : authCodeError
+                        ? 'border-red-400 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-gray-700'
+                  }`}
+                  placeholder="인증번호 6자리 입력"
+                  maxLength={10}
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyAuthCode}
+                  className={`px-4 py-3 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap ${
+                    authCodeVerified
+                      ? 'bg-green-500 text-white cursor-default'
+                      : 'bg-gray-800 text-white hover:bg-gray-900'
+                  }`}
+                >
+                  {authCodeVerified ? '✅ 확인됨' : '확인'}
+                </button>
+              </div>
+              {authCodeError && (
+                <p className="text-xs text-red-600 mt-1.5 font-medium">⚠️ {authCodeError}</p>
+              )}
+              {authCodeVerified && (
+                <p className="text-xs text-green-600 mt-1.5 font-medium">✅ 인증번호가 확인되었습니다.</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1.5">관리자에게 발급받은 인증번호를 입력하세요.</p>
+            </div>
+
             <div className="pt-2 flex gap-3">
               <Link
                 href="/admin/login"
@@ -210,7 +268,7 @@ export default function AdminRegister() {
               </Link>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !authCodeVerified}
                 className="flex-1 bg-gray-800 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
               >
                 {loading ? '가입 중...' : '관리자 등록'}
