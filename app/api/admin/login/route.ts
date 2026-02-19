@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
       admin: {
         id: admin.id,
         email: admin.email,
-        name: admin.name
+        name: admin.name,
+        phone: admin.phone || ''
       }
     });
 

@@ -129,10 +129,19 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <Link href="/admin" className="text-sm text-blue-600 hover:text-blue-700 underline">
+          <div className="mt-6 text-center space-y-2">
+            <Link href="/admin" className="text-sm text-blue-600 hover:text-blue-700 underline block">
               ← 관리자 홈으로
             </Link>
+            <div className="border-t pt-3 mt-3">
+              <p className="text-xs text-gray-500 mb-1">계정이 없으신가요?</p>
+              <Link
+                href="/admin/register"
+                className="inline-block px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors"
+              >
+                관리자 계정 만들기
+              </Link>
+            </div>
           </div>
         </div>
       </div>
