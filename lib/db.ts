@@ -1,23 +1,37 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
-// 공통 DB 경로 사용 (절대 경로)
-const dbPath = '/home/user/shared-emfrontier.db';
+// DB 경로: 환경변수로 오버라이드 가능, 기본값은 /home/user/shared-emfrontier.db
+const dbPath = process.env.DB_PATH || '/home/user/shared-emfrontier.db';
+
 let db: Database.Database | null = null;
+let isInitialized = false; // 중복 초기화 방지 플래그
 
 export function getDatabase() {
   if (!db) {
+    // DB 디렉토리가 없으면 생성
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
     db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+
+    // DB 연결 시 테이블이 없으면 자동 생성
+    if (!isInitialized) {
+      _ensureTables(db);
+      isInitialized = true;
+    }
   }
   return db;
 }
 
-// 데이터베이스 초기화
-export function initDatabase() {
-  const database = getDatabase();
-
+// 내부 테이블 생성 함수 (직접 호출 금지 - getDatabase() 통해서만 실행됨)
+function _ensureTables(database: Database.Database) {
   // 클라이언트 사용자 테이블
   database.exec(`
     CREATE TABLE IF NOT EXISTS clients (
@@ -45,12 +59,10 @@ export function initDatabase() {
     )
   `);
 
-  // 기존 테이블에 phone 컬럼 추가 (마이그레이션)
-  try {
-    database.exec(`ALTER TABLE clients ADD COLUMN phone TEXT`);
-  } catch (e) {
-    // 컬럼이 이미 존재하면 무시
-  }
+  // 마이그레이션: phone 컬럼
+  try { database.exec(`ALTER TABLE clients ADD COLUMN phone TEXT`); } catch (e) {}
+  // 마이그레이션: business_years 컬럼
+  try { database.exec(`ALTER TABLE clients ADD COLUMN business_years INTEGER DEFAULT 0`); } catch (e) {}
 
   // 어드민 사용자 테이블
   database.exec(`
@@ -71,11 +83,15 @@ export function initDatabase() {
       status TEXT NOT NULL DEFAULT '접수대기',
       policy_funds TEXT,
       notes TEXT,
+      fund_amounts TEXT DEFAULT '{}',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (client_id) REFERENCES clients(id)
     )
   `);
+
+  // 마이그레이션: fund_amounts 컬럼
+  try { database.exec(`ALTER TABLE applications ADD COLUMN fund_amounts TEXT DEFAULT '{}'`); } catch (e) {}
 
   // AI 진단 결과 테이블
   database.exec(`
@@ -142,35 +158,28 @@ export function initDatabase() {
     )
   `);
 
-  // 마이그레이션: applications 테이블에 fund_amounts 컬럼 추가
-  try {
-    database.exec(`ALTER TABLE applications ADD COLUMN fund_amounts TEXT DEFAULT '{}'`);
-  } catch (e) {
-    // 이미 존재하면 무시
-  }
-
-  // 마이그레이션: clients 테이블에 business_years 컬럼 추가
-  try {
-    database.exec(`ALTER TABLE clients ADD COLUMN business_years INTEGER DEFAULT 0`);
-  } catch (e) {
-    // 이미 존재하면 무시
-  }
-
-  // 기본 어드민 계정 생성
+  // 기본 어드민 계정 생성 (없을 때만)
   const adminPassword = bcrypt.hashSync('skc07245', 10);
-  
-  const existingAdmin = database.prepare('SELECT * FROM admins WHERE email = ?').get('son713119@naver.com');
+  const existingAdmin = database.prepare('SELECT id FROM admins WHERE email = ?').get('son713119@naver.com');
   if (!existingAdmin) {
-    // 구 계정이 있으면 삭제 후 신규 계정 생성
     database.prepare('DELETE FROM admins WHERE email = ?').run('admin@emfrontier.com');
-    database.prepare('INSERT INTO admins (email, password, name) VALUES (?, ?, ?)').run(
+    database.prepare('INSERT OR IGNORE INTO admins (email, password, name) VALUES (?, ?, ?)').run(
       'son713119@naver.com',
       adminPassword,
       '관리자'
     );
   }
 
-  console.log('✅ Database initialized successfully');
+  console.log(`✅ Database ready: ${dbPath}`);
+}
+
+/**
+ * @deprecated 각 API route에서 initDatabase()를 직접 호출할 필요 없음.
+ * getDatabase() 호출 시 자동으로 테이블이 생성됩니다.
+ * 하위 호환성을 위해 남겨둠.
+ */
+export function initDatabase() {
+  getDatabase(); // getDatabase() 내부에서 자동 처리
 }
 
 export default getDatabase;

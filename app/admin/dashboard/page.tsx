@@ -68,7 +68,7 @@ export default function AdminDashboard() {
   const [showFundEval, setShowFundEval] = useState(false);
   const [fundEvalData, setFundEvalData] = useState<any>(null);
   const [loadingFundEval, setLoadingFundEval] = useState(false);
-  const [fundFilter, setFundFilter] = useState<'all'|'eligible'|'ineligible'>('all');
+  const [fundFilter, setFundFilter] = useState<'all'|'eligible'|'ineligible'>('eligible');
 
   // AI 기업집중분석
   const [showCompanyAnalysis, setShowCompanyAnalysis] = useState(false);
@@ -453,7 +453,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         setFundEvalData(d);
         setShowFundEval(true);
-        setFundFilter('all');
+        setFundFilter('eligible');
       } else alert(d.error || '재분석 실패');
     } catch { alert('오류 발생'); }
     finally { setReanalyzingFunds(false); }
@@ -1569,7 +1569,7 @@ export default function AdminDashboard() {
                       <p className="text-xs text-green-500 mt-1">{fundEvalData.maxLoanLimit?.toLocaleString()}원</p>
                     </div>
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200">
-                      <p className="text-xs text-purple-600 font-semibold mb-1">추천 자금</p>
+                      <p className="text-xs text-purple-600 font-semibold mb-1">신청 가능 자금</p>
                       <p className="text-3xl font-black text-purple-700">{fundEvalData.funds?.filter((f: any) => f.eligible).length}</p>
                       <p className="text-xs text-purple-500 mt-1">/ {fundEvalData.funds?.length}개 분석</p>
                     </div>
@@ -1586,8 +1586,8 @@ export default function AdminDashboard() {
                         }`}
                       >
                         {f === 'all' ? `전체 (${fundEvalData.funds?.length})` :
-                         f === 'eligible' ? `✅ 충족 (${fundEvalData.funds?.filter((x: any) => x.eligible).length})` :
-                         `❌ 미충족 (${fundEvalData.funds?.filter((x: any) => !x.eligible).length})`}
+                         f === 'eligible' ? `✅ 신청 가능 (${fundEvalData.funds?.filter((x: any) => x.eligible).length})` :
+                         `❌ 신청 불가 (${fundEvalData.funds?.filter((x: any) => !x.eligible).length})`}
                       </button>
                     ))}
                   </div>
